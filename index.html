@@ -259,6 +259,13 @@
   <div class="subtitulo">Calculadora de créditos de remoción de carbono — biochar de madera de replantación</div>
 </header>
 
+<!-- ==================== RESULTADO ==================== -->
+<section>
+  <div class="resultado-grande">
+    <div class="cifra"><span id="outNeto">—</span> <span class="u">USD/año</span></div>
+  </div>
+</section>
+
 <div id="bannerNC">⚠ No certificable: H/Corg fuera del umbral de la metodología (H/Corg ≥ 0.70)</div>
 
 <!-- ==================== 1. ENTRADA ==================== -->
@@ -311,9 +318,22 @@
   </div>
 </section>
 
-<!-- ==================== 2. TEMPERATURA DE PIRÓLISIS ==================== -->
+
+
+
+
+<!-- ==================== 2. EQUIVALENCIAS ==================== -->
 <section>
-  <h2>2 · Temperatura de pirólisis</h2>
+  <h2>2 · Equivalencias tangibles</h2>
+  <div class="equivalencias">
+    <div class="equi"><div class="v" id="outEqAutos">—</div><div class="k">automóviles fuera de circulación un año <button type="button" class="info-btn" data-tip="Factor: 4.6 tCO₂e por automóvil al año. Estimación preliminar; se sugiere el EPA Greenhouse Gas Equivalencies Calculator.">i</button></div></div>
+    <div class="equi"><div class="v" id="outEqArboles">—</div><div class="k">árboles creciendo 10 años <button type="button" class="info-btn" data-tip="Factor: 0.06 tCO₂e por árbol en 10 años de crecimiento. Estimación preliminar.">i</button></div></div>
+    <div class="equi"><div class="v" id="outEqVuelos">—</div><div class="k">vuelos ida y vuelta GUA–Madrid por pasajero <button type="button" class="info-btn" data-tip="Factor: 2.0 tCO₂e por pasajero por vuelo ida y vuelta. Estimación preliminar.">i</button></div></div>
+  </div>
+</section>
+<!-- ==================== 3. TEMPERATURA DE PIRÓLISIS ==================== -->
+<section>
+  <h2>3 · Temperatura de pirólisis</h2>
   <div class="slider-panel">
     <div class="slider-cabecera">
       <div class="temp-actual"><span id="outTemp">350</span><span class="u"> °C</span></div>
@@ -329,18 +349,10 @@
     <svg id="svgCurvas" viewBox="0 0 900 230" role="img" aria-label="Relación H/Corg contra temperatura de pirólisis"></svg>
   </div>
 </section>
-
-<!-- ==================== RESULTADO ==================== -->
-<section>
-  <div class="resultado-grande">
-    <div class="cifra"><span id="outNeto">—</span> <span class="u">USD/año</span></div>
-  </div>
-</section>
-
-<!-- ==================== 3. VALOR ALTERNATIVO ==================== -->
+<!-- ==================== 4. VALOR ALTERNATIVO ==================== -->
 <section>
   <details class="panel">
-    <summary>3 · Costo de oportunidad de la madera</summary>
+    <summary>4 · Costo de oportunidad de la madera</summary>
     <div class="contenido">
       <p style="font-size:.9rem;margin-bottom:.8rem">Qué valdría la misma madera seca en usos alternativos.
         Todos los precios son editables.</p>
@@ -358,17 +370,6 @@
     </div>
   </details>
 </section>
-
-<!-- ==================== 4. EQUIVALENCIAS ==================== -->
-<section>
-  <h2>4 · Equivalencias tangibles</h2>
-  <div class="equivalencias">
-    <div class="equi"><div class="v" id="outEqAutos">—</div><div class="k">automóviles fuera de circulación un año <button type="button" class="info-btn" data-tip="Factor: 4.6 tCO₂e por automóvil al año. Estimación preliminar; se sugiere el EPA Greenhouse Gas Equivalencies Calculator.">i</button></div></div>
-    <div class="equi"><div class="v" id="outEqArboles">—</div><div class="k">árboles creciendo 10 años <button type="button" class="info-btn" data-tip="Factor: 0.06 tCO₂e por árbol en 10 años de crecimiento. Estimación preliminar.">i</button></div></div>
-    <div class="equi"><div class="v" id="outEqVuelos">—</div><div class="k">vuelos ida y vuelta GUA–Madrid por pasajero <button type="button" class="info-btn" data-tip="Factor: 2.0 tCO₂e por pasajero por vuelo ida y vuelta. Estimación preliminar.">i</button></div></div>
-  </div>
-</section>
-
 <!-- ==================== TRAZABILIDAD ==================== -->
 <section>
   <details class="panel discreto" id="panelFuentes">
@@ -894,7 +895,7 @@ function recalc() {
   dibujarCurva(tPirolisis, hcorg);
 
   // Resultado
-  setNum("outNeto", ingTotal, 0);
+  setNum("outNeto", ingTotal, 0, "$");
 
   // Valor alternativo
   setNum("outAserrada", maderaSeca * (parseFloat($("inPAserrada").value) || 0), 0);
