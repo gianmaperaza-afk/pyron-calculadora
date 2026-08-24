@@ -141,10 +141,6 @@
   .slider-cabecera { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: .5rem; }
   .temp-actual { font-family: var(--serif); font-size: 2.2rem; }
   .temp-actual .u { color: var(--dorado); font-size: 1.3rem; }
-  .slider-lecturas { display: flex; gap: 2.2rem; flex-wrap: wrap; margin-top: .6rem; }
-  .lectura .v { font-size: 1.5rem; font-weight: 700; transition: color .25s ease; }
-  .lectura .k { font-size: .78rem; color: var(--verde-medio); }
-  .lectura.mal .v { color: var(--rojo-alerta); }
 
   #svgCurvas { width: 100%; height: auto; display: block; margin-top: 1rem; cursor: crosshair; }
 
@@ -340,12 +336,6 @@
       <div style="font-size:.85rem;color:var(--verde-medio)">Rango de operación 250–450 °C</div>
     </div>
     <input type="range" id="inTemp" min="250" max="450" step="5" value="350" title="Zonas de la pista: rojo = no certificable (H/Corg ≥ 0.70), verde = certificable">
-    <div class="slider-lecturas">
-      <div class="lectura"><div class="v" id="outRend">—</div><div class="k">Rendimiento de biochar (%)</div></div>
-      <div class="lectura" id="lecturaH"><div class="v" id="outHC">—</div><div class="k">H/Corg (molar) · umbral &lt; 0.70</div></div>
-      <div class="lectura"><div class="v" id="outPF">—</div><div class="k">Fracción de persistencia PF (%)</div></div>
-      <div class="lectura"><div class="v" style="color:var(--dorado)">350 °C</div><div class="k">Temperatura óptima de operación <button type="button" class="info-btn" data-tip="Temperatura de trabajo definida para el proceso de PYRON. Las corridas de laboratorio a 400, 500 y 600 °C afinarán el rendimiento y la relación H/Corg reales.">i</button></div></div>
-    </div>
     <svg id="svgCurvas" viewBox="0 0 900 230" role="img" aria-label="Relación H/Corg contra temperatura de pirólisis"></svg>
   </div>
 </section>
@@ -874,7 +864,6 @@ function recalc() {
   const hcorg = hcorgDe(tPirolisis);
   const certificable = hcorg < PARAMS.umbral_hcorg.valor;
   document.body.classList.toggle("no-certificable", !certificable);
-  $("lecturaH").classList.toggle("mal", !certificable);
 
   // 4) Cadena de la metodología
   const cstored = calcCstored(qBiochar, corg);                      // Ec. 6.1
@@ -889,9 +878,6 @@ function recalc() {
 
   // Lecturas del deslizador
   $("outTemp").textContent = tPirolisis;
-  $("outRend").textContent = fmt(RENDIMIENTO, 1) + " %";
-  $("outHC").textContent = fmt(hcorg, 3);
-  $("outPF").textContent = certificable ? fmt(pf, 2) + " %" : "no aplica";
   dibujarCurva(tPirolisis, hcorg);
 
   // Resultado
