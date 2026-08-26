@@ -227,6 +227,12 @@
     text-align: center; padding: 2rem 1rem 1.4rem;
     border-top: 2px solid var(--dorado-claro); border-bottom: 2px solid var(--dorado-claro);
   }
+  .resultado-grande .titulo-resultado {
+    font-family: var(--serif); font-size: 1.5rem; font-weight: 600; letter-spacing: .06em;
+    color: var(--verde-medio); margin-bottom: .6rem;
+  }
+  .resultado-grande.secundario .cifra { font-size: 2.4rem; }
+  .resultado-grande.secundario .titulo-resultado { font-size: 1.2rem; }
   .resultado-grande .cifra {
     font-family: var(--serif); font-size: 4rem; font-weight: 700; color: var(--verde-oscuro);
     transition: color .3s ease; line-height: 1.1;
@@ -293,6 +299,37 @@
 
   svg.grafico { width: 100%; height: auto; background: #fff; border: 1.5px solid var(--dorado-claro); border-radius: 12px; }
 
+  .boton {
+    font-family: var(--sans); font-size: .88rem; font-weight: 600;
+    background: var(--verde-oscuro); color: #fff; border: none;
+    padding: .5rem 1.1rem; border-radius: 6px; cursor: pointer;
+  }
+  .boton:hover { background: var(--verde-medio); }
+  .boton.secundario { background: transparent; color: var(--verde-medio); border: 1.5px solid var(--dorado-claro); }
+
+  #svgTornado { width: 100%; height: auto; background: #fff; border: 1.5px solid var(--dorado-claro); border-radius: 12px; }
+
+  .chk { display: flex; gap: .6rem; align-items: flex-start; font-size: .9rem; }
+  .chk .marca { flex: none; width: 1.3rem; height: 1.3rem; border-radius: 50%; display: inline-flex;
+    align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; color: #fff; }
+  .chk .marca.ok { background: var(--verde-medio); }
+  .chk .marca.pendiente { background: var(--dorado-claro); color: var(--verde-oscuro); }
+  .chk .marca.mal { background: var(--rojo-alerta); }
+  .chk .detalle { font-size: .8rem; color: var(--verde-medio); }
+
+  .pie-version {
+    max-width: 1080px; margin: 2rem auto 0; padding: 0 1.5rem;
+    font-size: .78rem; color: var(--verde-medio);
+    display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: center;
+  }
+
+  @media print {
+    .esquina, #tooltip, .boton, #inTemp { display: none !important; }
+    body { background: #fff; padding: 0; }
+    details.panel summary::after { content: ""; }
+    section { break-inside: avoid; }
+  }
+
   .equivalencias { display: flex; gap: 1.2rem; flex-wrap: wrap; }
   .equi {
     flex: 1 1 200px; background: #fff; border: 1.5px solid var(--dorado-claro);
@@ -305,7 +342,13 @@
   @media (max-width: 640px) {
     html { font-size: 15px; }
     h1 { font-size: 2rem; }
-    .resultado-grande .cifra { font-size: 2.6rem; }
+    .resultado-grande .titulo-resultado {
+    font-family: var(--serif); font-size: 1.5rem; font-weight: 600; letter-spacing: .06em;
+    color: var(--verde-medio); margin-bottom: .6rem;
+  }
+  .resultado-grande.secundario .cifra { font-size: 2.4rem; }
+  .resultado-grande.secundario .titulo-resultado { font-size: 1.2rem; }
+  .resultado-grande .cifra { font-size: 2.6rem; }
     .paso { grid-template-columns: 1rem 1fr; }
     .paso .valor { grid-column: 2; text-align: left; }
     .paso .eq-tag { grid-column: 2; justify-self: start; }
@@ -326,6 +369,14 @@
   <h1>PYRON</h1>
   <div class="subtitulo">Calculadora de créditos de remoción de carbono — biochar de madera de replantación</div>
 </header>
+
+<!-- ==================== INGRESOS BRUTOS (encabezado) ==================== -->
+<section>
+  <div class="resultado-grande">
+    <div class="titulo-resultado">Ingresos brutos</div>
+    <div class="cifra"><span id="outBruto">—</span> <span class="u">USD/año</span></div>
+  </div>
+</section>
 
 <div id="bannerNC">⚠ No certificable: H/Corg fuera del umbral de la metodología (H/Corg ≥ 0.70)</div>
 
@@ -399,9 +450,19 @@
   </div>
 </section>
 
-<!-- ==================== 2. TEMPERATURA DE PIRÓLISIS ==================== -->
+<!-- ==================== 7. EQUIVALENCIAS ==================== -->
 <section>
-  <h2>2 · Temperatura de pirólisis</h2>
+  <h2>2 · Equivalencias tangibles</h2>
+  <div class="equivalencias">
+    <div class="equi"><div class="v" id="outEqAutos">—</div><div class="k">automóviles fuera de circulación un año <button type="button" class="info-btn" data-tip="Factor: 4.6 tCO₂e por automóvil al año. Pendiente de verificación; se sugiere el EPA Greenhouse Gas Equivalencies Calculator.">i</button></div></div>
+    <div class="equi"><div class="v" id="outEqArboles">—</div><div class="k">árboles creciendo 10 años <button type="button" class="info-btn" data-tip="Factor: 0.06 tCO₂e por árbol en 10 años de crecimiento. Pendiente de verificación.">i</button></div></div>
+    <div class="equi"><div class="v" id="outEqVuelos">—</div><div class="k">vuelos ida y vuelta GUA–Madrid por pasajero <button type="button" class="info-btn" data-tip="Factor: 2.0 tCO₂e por pasajero por vuelo ida y vuelta. Pendiente de verificación.">i</button></div></div>
+  </div>
+</section>
+
+<!-- ==================== 3. TEMPERATURA DE PIRÓLISIS ==================== -->
+<section>
+  <h2>3 · Temperatura de pirólisis</h2>
   <div class="slider-panel">
     <div class="slider-cabecera">
       <div class="temp-actual"><span id="outTemp">450</span><span class="u"> °C</span></div>
@@ -438,6 +499,29 @@
         <tbody id="tbodyCorridas"></tbody>
       </table>
       </div>
+      <h3 style="margin-top:1.2rem">Calcular H/Corg desde el análisis elemental <button type="button" class="info-btn" data-tip="Ec. 6.5 de la metodología: H/Corg = (mH / mCorg) × 12.0. Ingresá las masas del reporte de laboratorio; el resultado se guarda en la corrida elegida y sustituye el punto supuesto de la curva a esa temperatura.">i</button></h3>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+        <div class="campo">
+          <label for="inCorrida">Corrida</label>
+          <select id="inCorrida"></select>
+        </div>
+        <div class="campo">
+          <label for="inMasaH">mH (% en peso)</label>
+          <input type="number" id="inMasaH" value="" min="0" step="any" placeholder="ej. 2.4">
+        </div>
+        <div class="campo">
+          <label for="inMasaC">mCorg (% en peso)</label>
+          <input type="number" id="inMasaC" value="" min="0" step="any" placeholder="ej. 78.0">
+        </div>
+        <div class="campo">
+          <label for="inRendCorrida">Rendimiento (%)</label>
+          <input type="number" id="inRendCorrida" value="" min="0" max="100" step="any" placeholder="opcional">
+        </div>
+      </div>
+      <p style="margin-top:.7rem;display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
+        <button type="button" id="btnAplicarCorrida" class="boton">Calcular y aplicar a la curva</button>
+        <span id="salidaHCorg" style="font-size:.9rem;color:var(--verde-medio)"></span>
+      </p>
     </div>
     </div>
     </div>
@@ -447,18 +531,20 @@
 <!-- ==================== 3. CADENA DE CÁLCULO ==================== -->
 <section>
   <details class="panel">
-    <summary>3 · Cadena de cálculo</summary>
+    <summary>4 · Cadena de cálculo</summary>
     <div class="contenido">
       <div class="cadena" id="cadena"></div>
     </div>
   </details>
 </section>
 
-<!-- ==================== 4. RESULTADO ==================== -->
+<!-- ==================== 5. RESULTADO ==================== -->
 <section>
-  <div class="resultado-grande">
+  <h2>5 · Resultado detallado</h2>
+  <div class="resultado-grande secundario">
+    <div class="titulo-resultado">Ingreso neto</div>
     <div class="cifra"><span id="outNeto">—</span> <span class="u">USD/año</span></div>
-    <div class="etiqueta">Ingreso <strong>neto</strong> estimado (bruto − logística y aplicación − auditoría)</div>
+    <div class="etiqueta">ingresos brutos − logística y aplicación − auditoría</div>
     <div class="sub-resultados">
       <div><div class="v" id="outCORCs">—</div><div class="k">CORCs netos (tCO₂e)</div></div>
       <div><div class="v" id="outBiocharT">—</div><div class="k">Biochar producido (t)</div></div>
@@ -480,6 +566,10 @@
       </p>
     </div>
   </div>
+  <div class="equivalencias" style="margin-top:1.4rem">
+    <div class="equi"><div class="v" id="outEqHa">—</div><div class="k">hectáreas mínimas para cubrir costos <button type="button" class="info-btn" data-tip="Punto de equilibrio: superficie mínima a la que el ingreso bruto alcanza para pagar la logística y la auditoría anual. Por debajo de esa escala el proyecto no se sostiene con los supuestos actuales.">i</button></div></div>
+    <div class="equi"><div class="v" id="outEqPrecio">—</div><div class="k">precio mínimo del CORC (USD/tCO₂e) <button type="button" class="info-btn" data-tip="Precio del crédito al que, manteniendo todo lo demás igual, el ingreso bruto cubre exactamente los costos. Si la venta del producto ya los cubre, el mínimo es cero.">i</button></div></div>
+  </div>
   <details class="panel" style="margin-top:1.2rem">
     <summary>Costos y supuestos configurables <span class="contador-fuentes" id="chipAlertas" style="color:var(--naranja-alerta)"></span></summary>
     <div class="contenido">
@@ -498,8 +588,20 @@
       <input type="number" id="inAuditoria" value="5000" min="0" step="any">
     </div>
     <div class="campo">
-      <label for="inEproject">Eproject (tCO₂e por t de biochar) <button type="button" class="info-btn" data-tip="Emisiones del proyecto: energía, transporte, proceso (Ec. 5.1). Pendiente de análisis de ciclo de vida propio.">i</button></label>
-      <input type="number" id="inEproject" value="0" min="0" step="any">
+      <label for="inEprojTransporte">Eproject · transporte (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Emisiones del acarreo de madera al reactor y del biochar al campo. Estimación preliminar: pendiente del inventario de flota y distancias de Fortaleza.">i</button></label>
+      <input type="number" id="inEprojTransporte" value="0" min="0" step="any">
+    </div>
+    <div class="campo">
+      <label for="inEprojEnergia">Eproject · energía (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Emisiones de la energía consumida por el reactor y los equipos auxiliares. Estimación preliminar: pendiente de medición de consumo.">i</button></label>
+      <input type="number" id="inEprojEnergia" value="0" min="0" step="any">
+    </div>
+    <div class="campo">
+      <label for="inEprojProceso">Eproject · proceso (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Emisiones no capturadas del propio proceso de pirólisis (gases de síntesis quemados, fugas). Estimación preliminar: pendiente del análisis de ciclo de vida.">i</button></label>
+      <input type="number" id="inEprojProceso" value="0" min="0" step="any">
+    </div>
+    <div class="campo">
+      <label>Eproject total (tCO₂e/t biochar)</label>
+      <div id="outEprojTotal" style="padding:.55rem .6rem;font-size:1.05rem;border:1.5px dashed var(--dorado-claro);border-radius:6px;background:#FFFDF8">—</div>
     </div>
     <div class="campo">
       <label for="inUmbral">Umbral de viabilidad (CORCs/año) <button type="button" class="info-btn" data-tip="Escala mínima orientativa para que el ingreso por carbono cubra certificación y auditoría. Por debajo se muestra una advertencia, sin bloquear el cálculo.">i</button></label>
@@ -515,10 +617,76 @@
   </details>
 </section>
 
-<!-- ==================== 5. VALOR ALTERNATIVO ==================== -->
+<!-- ==================== 6. SENSIBILIDAD ==================== -->
+<section>
+  <h2>6 · Análisis de sensibilidad</h2>
+  <p style="font-size:.9rem;margin-bottom:.8rem">Cuánto se mueve el ingreso bruto si cada parámetro varía
+    <strong>±20 %</strong>, dejando todo lo demás igual. Las barras están ordenadas por impacto: las de arriba
+    son los supuestos que más conviene medir antes que ningún otro.</p>
+  <svg id="svgTornado" viewBox="0 0 900 240" role="img" aria-label="Sensibilidad del ingreso bruto a cada parámetro"></svg>
+</section>
+
+<!-- ==================== 7. ESCENARIOS ==================== -->
 <section>
   <details class="panel">
-    <summary>4 · Costo de oportunidad de la madera</summary>
+    <summary>7 · Escenarios comparados</summary>
+    <div class="contenido">
+      <p style="font-size:.9rem;margin-bottom:.8rem">Los tres escenarios parten de la configuración actual y
+        aplican los ajustes indicados. Los porcentajes son de trabajo y se pueden editar en el código
+        (<code>ESCENARIOS</code>); el escenario base es siempre lo que está cargado arriba.</p>
+      <div class="tabla-scroll">
+        <table id="tablaEscenarios">
+          <thead><tr><th>Indicador</th><th class="num">Conservador</th><th class="num">Base</th><th class="num">Optimista</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ==================== 8. PLAN MULTIANUAL ==================== -->
+<section>
+  <details class="panel">
+    <summary>8 · Plan multianual de replantación</summary>
+    <div class="contenido">
+      <p style="font-size:.9rem;margin-bottom:.8rem">La tala es cíclica: esta tabla proyecta el programa año por año
+        suponiendo una superficie constante. El calendario real de Fortaleza sustituirá estos valores.</p>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:1rem">
+        <div class="campo">
+          <label for="inHaAnio">Hectáreas por año</label>
+          <input type="number" id="inHaAnio" value="100" min="0" step="any">
+        </div>
+        <div class="campo">
+          <label for="inAnios">Años del programa</label>
+          <input type="number" id="inAnios" value="8" min="1" max="30" step="1">
+        </div>
+      </div>
+      <div class="tabla-scroll">
+        <table id="tablaPlan">
+          <thead><tr><th>Año</th><th class="num">Hectáreas acumuladas</th><th class="num">CORCs del año</th><th class="num">Ingreso bruto del año</th><th class="num">Ingreso acumulado</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ==================== 9. ELEGIBILIDAD ==================== -->
+<section>
+  <details class="panel">
+    <summary>9 · Elegibilidad y ruta regulatoria <span class="contador-fuentes" id="chipElegibilidad"></span></summary>
+    <div class="contenido">
+      <p style="font-size:.9rem;margin-bottom:.8rem">Requisitos para que los créditos lleguen a emitirse. Los dos
+        primeros se evalúan solos con el cálculo actual; los demás se marcan a mano conforme avanzan los trámites.</p>
+      <ul id="listaElegibilidad" style="list-style:none;display:flex;flex-direction:column;gap:.55rem"></ul>
+    </div>
+  </details>
+</section>
+
+<!-- ==================== 10. VALOR ALTERNATIVO ==================== -->
+<section>
+  <details class="panel">
+    <summary>10 · Costo de oportunidad de la madera</summary>
     <div class="contenido">
   <p style="font-size:.9rem;margin-bottom:.8rem">Qué valdría la misma madera seca en usos alternativos.
     Todos los precios son editables (fuente: Pendiente de verificación).</p>
@@ -539,7 +707,7 @@
 
 <!-- ==================== 6. FLUJO DE CAJA ==================== -->
 <section>
-  <h2>5 · Línea de tiempo de flujo de caja (esquemática)</h2>
+  <h2>11 · Línea de tiempo de flujo de caja (esquemática)</h2>
   <p style="font-size:.9rem;margin-bottom:.8rem">
     El proyecto exige capital propio durante la fase sin ingreso: los CORCs se pagan tras la primera
     verificación. Meses hasta el primer pago:
@@ -548,15 +716,6 @@
   <svg id="graficoFlujo" class="grafico" viewBox="0 0 900 320" role="img" aria-label="Flujo de caja acumulado, 36 meses"></svg>
 </section>
 
-<!-- ==================== 7. EQUIVALENCIAS ==================== -->
-<section>
-  <h2>6 · Equivalencias tangibles</h2>
-  <div class="equivalencias">
-    <div class="equi"><div class="v" id="outEqAutos">—</div><div class="k">automóviles fuera de circulación un año <button type="button" class="info-btn" data-tip="Factor: 4.6 tCO₂e por automóvil al año. Pendiente de verificación; se sugiere el EPA Greenhouse Gas Equivalencies Calculator.">i</button></div></div>
-    <div class="equi"><div class="v" id="outEqArboles">—</div><div class="k">árboles creciendo 10 años <button type="button" class="info-btn" data-tip="Factor: 0.06 tCO₂e por árbol en 10 años de crecimiento. Pendiente de verificación.">i</button></div></div>
-    <div class="equi"><div class="v" id="outEqVuelos">—</div><div class="k">vuelos ida y vuelta GUA–Madrid por pasajero <button type="button" class="info-btn" data-tip="Factor: 2.0 tCO₂e por pasajero por vuelo ida y vuelta. Pendiente de verificación.">i</button></div></div>
-  </div>
-</section>
 
 <!-- ==================== 8. TRAZABILIDAD ==================== -->
 <section>
@@ -573,6 +732,11 @@
   </details>
 </section>
 </main>
+
+<div class="pie-version">
+  <span>PYRON · versión completa 2.0 · actualizada el 26 de agosto de 2026 · UVG y Grupo Fortaleza</span>
+  <button type="button" class="boton secundario" id="btnImprimir">Imprimir o guardar como PDF</button>
+</div>
 
 
 <div id="tooltip" role="tooltip"></div>
@@ -1259,6 +1423,251 @@ function renderBalance(certificable, pf, corcs, closs) {
 }
 
 /* ===========================================================================
+   CÁLCULO PURO
+   Recibe una configuración completa y devuelve la cadena entera. Lo usan el
+   recálculo principal, el análisis de sensibilidad, los escenarios comparados,
+   el plan multianual y el punto de equilibrio.
+   =========================================================================== */
+function calcularEscenario(c) {
+  const tPorHa = c.arboles * c.m3Arbol * c.densidad / 1000;
+  let maderaSeca = c.unidad === "ha" ? c.cantidad * tPorHa : c.cantidad;
+  if (c.baseVerde) maderaSeca = maderaSeca * (1 - c.humedad / 100);
+  const rendimiento = c.rendimiento !== undefined ? c.rendimiento
+    : interpolar(CURVAS.temps, CURVAS.rendimiento, c.tPirolisis);
+  const hcorg = c.hcorg !== undefined ? c.hcorg
+    : interpolar(CURVAS.temps, CURVAS.hcorg, c.tPirolisis);
+  const certificable = hcorg < PARAMS.umbral_hcorg.valor;
+  const qBiochar = maderaSeca * rendimiento / 100;
+  const cstored = calcCstored(qBiochar, c.corg);          // Ec. 6.1
+  const pf = calcPF(hcorg, c.ts);                         // Ec. 6.4
+  const closs = calcCloss(cstored, pf);                   // Ec. 6.3
+  const eproject = c.eprojPorT * qBiochar;
+  const corcs = certificable
+    ? calcCORCs(cstored, PARAMS.cbaseline.valor, closs, eproject, PARAMS.eleakage.valor)  // Ec. 5.1
+    : 0;
+  const ingCarbono = corcs * c.precio;
+  const ingProducto = qBiochar * c.precioProducto;
+  const ingTotal = ingCarbono + ingProducto;
+  const costos = ingTotal * c.pctLog / 100 + c.auditoria;
+  return { tPorHa, maderaSeca, rendimiento, hcorg, certificable, qBiochar, cstored, pf, closs,
+           eproject, corcs, ingCarbono, ingProducto, ingTotal, costos, neto: ingTotal - costos };
+}
+
+/* Emisiones del proyecto por tonelada de biochar, desglosadas (Ec. 5.1) */
+function eprojectPorTonelada() {
+  const t = parseFloat($("inEprojTransporte").value) || 0;
+  const e = parseFloat($("inEprojEnergia").value) || 0;
+  const pr = parseFloat($("inEprojProceso").value) || 0;
+  return t + e + pr;
+}
+
+/* Configuración actual leída de la interfaz */
+function cfgActual() {
+  return {
+    unidad: $("inUnidad").value,
+    cantidad: parseFloat($("inCantidad").value) || 0,
+    arboles: parseFloat($("inArboles").value) || 0,
+    m3Arbol: parseFloat($("inM3Arbol").value) || 0,
+    densidad: parseFloat($("inDensidad").value) || 0,
+    baseVerde: $("inBase").value === "verde",
+    humedad: Math.min(80, Math.max(0, parseFloat($("inHumedad").value) || 0)),
+    ts: parseFloat($("inTs").value) || PARAMS.ts_defecto.valor,
+    precio: parseFloat($("inPrecio").value) || 0,
+    precioProducto: parseFloat($("inPrecioProducto").value) || 0,
+    corg: Math.min(1, Math.max(0, parseFloat($("inCorg").value) || 0)),
+    tPirolisis: parseFloat($("inTemp").value),
+    pctLog: Math.min(100, Math.max(0, parseFloat($("inLogistica").value) || 0)),
+    auditoria: parseFloat($("inAuditoria").value) || 0,
+    eprojPorT: eprojectPorTonelada(),
+    umbralViab: parseFloat($("inUmbral").value) || 0,
+    dosis: Math.max(0.1, parseFloat($("inDosis").value) || PARAMS.dosis_aplicacion.valor),
+    mesesPago: Math.min(36, Math.max(6, parseInt($("inMesesPago").value) || 30))
+  };
+}
+
+/* ===========================================================================
+   ANÁLISIS DE SENSIBILIDAD, ESCENARIOS, PLAN MULTIANUAL Y ELEGIBILIDAD
+   =========================================================================== */
+
+const VARIACION = 0.20;   // ±20 % sobre cada parámetro
+const PARAMS_SENSIBLES = [
+  { clave: "hcorg",          nombre: "H/Corg del biochar" },
+  { clave: "rendimiento",    nombre: "Rendimiento de biochar" },
+  { clave: "corg",           nombre: "Corg del biochar" },
+  { clave: "densidad",       nombre: "Densidad de la madera" },
+  { clave: "m3Arbol",        nombre: "Madera por árbol" },
+  { clave: "precio",         nombre: "Precio del CORC" },
+  { clave: "precioProducto", nombre: "Precio del producto" }
+];
+
+function variar(c, base, clave, factor) {
+  const c2 = Object.assign({}, c);
+  if (clave === "hcorg") c2.hcorg = base.hcorg * factor;
+  else if (clave === "rendimiento") c2.rendimiento = base.rendimiento * factor;
+  else if (clave === "corg") c2.corg = Math.min(1, c.corg * factor);   // el carbono no pasa del 100 %
+  else c2[clave] = c[clave] * factor;
+  return calcularEscenario(c2).ingTotal;
+}
+
+function renderSensibilidad(c, base) {
+  const filas = PARAMS_SENSIBLES.map(pm => {
+    const bajo = variar(c, base, pm.clave, 1 - VARIACION);
+    const alto = variar(c, base, pm.clave, 1 + VARIACION);
+    return { nombre: pm.nombre, dMin: Math.min(bajo, alto) - base.ingTotal, dMax: Math.max(bajo, alto) - base.ingTotal };
+  }).sort((a, b) => Math.max(Math.abs(b.dMin), Math.abs(b.dMax)) - Math.max(Math.abs(a.dMin), Math.abs(a.dMax)));
+
+  const W = 900, mL = 200, mR = 82, top = 34, fila = 26;
+  const H = top + filas.length * fila + 22;
+  const tope = Math.max(1, ...filas.map(f => Math.max(Math.abs(f.dMin), Math.abs(f.dMax))));
+  const cx = mL + (W - mL - mR) / 2;
+  const esc = ((W - mL - mR) / 2) / tope;
+  let g = '<text x="' + mL + '" y="18" font-size="11.5" font-weight="700" fill="#1B4332">Cambio en el ingreso bruto (USD/año)</text>';
+  g += '<line x1="' + cx + '" y1="' + (top - 8) + '" x2="' + cx + '" y2="' + (top + filas.length * fila) + '" stroke="#C9A961" stroke-width="1.5"/>';
+  filas.forEach((f, i) => {
+    const y = top + i * fila;
+    const xNeg = cx + f.dMin * esc, xPos = cx + f.dMax * esc;
+    g += '<text x="' + (mL - 12) + '" y="' + (y + 13) + '" font-size="11.5" fill="#1B4332" text-anchor="end">' + f.nombre + '</text>';
+    if (f.dMin < 0) g += '<rect x="' + xNeg.toFixed(1) + '" y="' + (y + 4) + '" width="' + (cx - xNeg).toFixed(1) + '" height="16" rx="3" fill="#9B2226" opacity="0.75"/>';
+    if (f.dMax > 0) g += '<rect x="' + cx + '" y="' + (y + 4) + '" width="' + (xPos - cx).toFixed(1) + '" height="16" rx="3" fill="#2D6A4F" opacity="0.85"/>';
+    const may = Math.max(Math.abs(f.dMin), Math.abs(f.dMax));
+    const pct = base.ingTotal > 0 ? (may / base.ingTotal * 100) : 0;
+    g += '<text x="' + (Math.max(xPos, cx) + 8).toFixed(1) + '" y="' + (y + 16) + '" font-size="10.5" fill="#2D6A4F">±' + fmt(pct, 1) + ' %</text>';
+  });
+  g += '<text x="' + cx + '" y="' + (top + filas.length * fila + 16) + '" font-size="10.5" fill="#2D6A4F" text-anchor="middle">escenario actual</text>';
+  const svg = $("svgTornado");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.innerHTML = g;
+}
+
+/* Escenarios de trabajo: multiplican rendimiento, precio del CORC y H/Corg */
+const ESCENARIOS = [
+  { nombre: "Conservador", rend: 0.85, precio: 0.70, hcorg: 1.10 },
+  { nombre: "Base",        rend: 1.00, precio: 1.00, hcorg: 1.00 },
+  { nombre: "Optimista",   rend: 1.10, precio: 1.40, hcorg: 0.90 }
+];
+
+function renderEscenarios(c, base) {
+  const res = ESCENARIOS.map(e => calcularEscenario(Object.assign({}, c, {
+    rendimiento: base.rendimiento * e.rend,
+    hcorg: base.hcorg * e.hcorg,
+    precio: c.precio * e.precio
+  })));
+  const filas = [
+    ["Biochar producido (t)", r => fmt(r.qBiochar, 0)],
+    ["CORCs netos (tCO₂e)", r => fmt(r.corcs, 0)],
+    ["Ingreso bruto (USD)", r => fmt(r.ingTotal, 0)],
+    ["Costos (USD)", r => "−" + fmt(r.costos, 0)],
+    ["Ingreso neto (USD)", r => fmt(r.neto, 0)]
+  ];
+  const tbody = $("tablaEscenarios").querySelector("tbody");
+  tbody.innerHTML = filas.map(([nombre, f]) =>
+    "<tr><td>" + (nombre.indexOf("neto") >= 0 ? "<strong>" + nombre + "</strong>" : nombre) + "</td>" +
+    res.map(r => '<td class="num">' + f(r) + "</td>").join("") + "</tr>").join("");
+}
+
+function renderPlan(c) {
+  const haAnio = parseFloat($("inHaAnio").value) || 0;
+  const anios = Math.min(30, Math.max(1, parseInt($("inAnios").value) || 1));
+  const r = calcularEscenario(Object.assign({}, c, { unidad: "ha", cantidad: haAnio }));
+  let acumulado = 0;
+  let html = "";
+  for (let a = 1; a <= anios; a++) {
+    acumulado += r.ingTotal;
+    html += "<tr><td>" + a + '</td><td class="num">' + fmt(haAnio * a, 0) + '</td><td class="num">' + fmt(r.corcs, 0) +
+            '</td><td class="num">' + fmt(r.ingTotal, 0) + '</td><td class="num">' + fmt(acumulado, 0) + "</td></tr>";
+  }
+  $("tablaPlan").querySelector("tbody").innerHTML = html;
+}
+
+function renderEquilibrio(c, r) {
+  const denom = 1 - c.pctLog / 100;
+  if (denom <= 0) { $("outEqHa").textContent = "—"; $("outEqPrecio").textContent = "—"; return; }
+  const ingMin = c.auditoria / denom;                    // ingreso bruto que deja neto cero
+  const porHa = calcularEscenario(Object.assign({}, c, { unidad: "ha", cantidad: 1 })).ingTotal;
+  $("outEqHa").textContent = porHa > 0 ? fmt(Math.ceil(ingMin / porHa), 0) : "—";
+  if (r.corcs <= 0) { $("outEqPrecio").textContent = "no aplica"; return; }
+  const precioMin = (ingMin - r.ingProducto) / r.corcs;
+  $("outEqPrecio").textContent = precioMin <= 0 ? "0 · lo cubre el producto" : fmt(precioMin, 2);
+}
+
+/* Lista de elegibilidad: los dos primeros puntos se evalúan solos */
+const CHECKLIST = [
+  { auto: "hcorg",   txt: "H/Corg del biochar por debajo de 0.70", det: "Ec. 6.5 · umbral de elegibilidad de Puro.earth, evaluado con la temperatura y la curva actuales" },
+  { auto: "elemental", txt: "Análisis elemental del biochar de PYRON", det: "Corridas #1 a #3, laboratorio de Operaciones Unitarias de la UVG" },
+  { auto: "lca",     txt: "Ciclo de vida del proceso documentado (Eproject)", det: "Mientras esté en cero, los CORCs mostrados no descuentan las emisiones del proceso" },
+  { id: "chkInab",     txt: "Origen legal de la madera certificado por el INAB", det: "Requisito de sostenibilidad de la biomasa" },
+  { id: "chkMarn",     txt: "Licencia ambiental de la planta otorgada por el MARN", det: "Requisito para operar la unidad de pirólisis" },
+  { id: "chkContrato", txt: "Contrato de venta con cláusula de no doble reclamo", det: "El comprador del biochar no puede reclamar el carbono asociado" },
+  { id: "chkPuro",     txt: "Proyecto registrado ante Puro.earth y auditoría de terceros", det: "Paso final antes de la emisión de los CORCs" }
+];
+
+function construirChecklist() {
+  $("listaElegibilidad").innerHTML = CHECKLIST.map((it, i) =>
+    '<li class="chk" data-i="' + i + '">' +
+      (it.auto ? '<span class="marca pendiente">·</span>'
+               : '<input type="checkbox" id="' + it.id + '" style="width:1.15rem;height:1.15rem;margin-top:.15rem;accent-color:#2D6A4F">') +
+      "<span><strong>" + it.txt + "</strong><br><span class=\"detalle\">" + it.det + "</span></span>" +
+    "</li>").join("");
+  $("listaElegibilidad").querySelectorAll("input[type=checkbox]").forEach(cb =>
+    cb.addEventListener("change", () => actualizarContadorElegibilidad()));
+}
+
+function actualizarChecklist(r) {
+  const estados = {
+    hcorg: r.certificable,
+    elemental: CORRIDAS_PYRON.some(co => co.h_corg !== null && co.h_corg !== undefined),
+    lca: eprojectPorTonelada() > 0
+  };
+  CHECKLIST.forEach((it, i) => {
+    if (!it.auto) return;
+    const marca = $("listaElegibilidad").querySelector('li[data-i="' + i + '"] .marca');
+    if (!marca) return;
+    const ok = estados[it.auto];
+    marca.className = "marca " + (ok ? "ok" : (it.auto === "hcorg" ? "mal" : "pendiente"));
+    marca.textContent = ok ? "✓" : (it.auto === "hcorg" ? "✕" : "·");
+  });
+  actualizarContadorElegibilidad();
+}
+
+function actualizarContadorElegibilidad() {
+  const auto = $("listaElegibilidad").querySelectorAll(".marca.ok").length;
+  const manual = $("listaElegibilidad").querySelectorAll("input[type=checkbox]:checked").length;
+  $("chipElegibilidad").textContent = (auto + manual) + " de " + CHECKLIST.length + " requisitos cumplidos";
+}
+
+/* Ec. 6.5 aplicada al reporte de laboratorio de una corrida */
+function poblarSelectCorridas() {
+  $("inCorrida").innerHTML = CORRIDAS_PYRON.map(co =>
+    '<option value="' + co.id + '">#' + co.id + " · " + co.temperatura + " °C</option>").join("");
+}
+
+function aplicarCorrida() {
+  const id = parseInt($("inCorrida").value);
+  const corrida = CORRIDAS_PYRON.find(co => co.id === id);
+  const mH = parseFloat($("inMasaH").value);
+  const mC = parseFloat($("inMasaC").value);
+  const rend = parseFloat($("inRendCorrida").value);
+  if (!corrida || !isFinite(mH) || !isFinite(mC) || mC <= 0) {
+    $("salidaHCorg").textContent = "Ingresá mH y mCorg mayores que cero.";
+    return;
+  }
+  const hcorg = (mH / mC) * 12.0;                       // Ec. 6.5
+  corrida.h_corg = Math.round(hcorg * 1000) / 1000;
+  if (isFinite(rend) && rend > 0) corrida.rendimiento = rend;
+  corrida.estado = "Medida por PYRON";
+  const idx = CURVAS.temps.indexOf(corrida.temperatura);
+  if (idx >= 0) {
+    CURVAS.hcorg[idx] = corrida.h_corg;
+    if (isFinite(rend) && rend > 0) CURVAS.rendimiento[idx] = rend;
+  }
+  construirTablaCorridas();
+  construirTablaCurvas();
+  $("salidaHCorg").textContent = "H/Corg = " + fmt(corrida.h_corg, 3) +
+    " · aplicado a la corrida #" + id + " y al punto de curva de " + corrida.temperatura + " °C.";
+  recalc();
+}
+
+/* ===========================================================================
    RECÁLCULO PRINCIPAL
    =========================================================================== */
 // Temperatura del rango que maximiza los CORCs con las curvas actuales.
@@ -1278,61 +1687,23 @@ function optimoEconomico(corg, ts, eprojPorT) {
 }
 
 function recalc() {
-  const unidad = $("inUnidad").value;
-  const cantidad = parseFloat($("inCantidad").value) || 0;
-  const arboles = parseFloat($("inArboles").value) || 0;
-  const m3Arbol = parseFloat($("inM3Arbol").value) || 0;
-  const densidad = parseFloat($("inDensidad").value) || 0;
-  const baseVerde = $("inBase").value === "verde";
-  const humedad = Math.min(80, Math.max(0, parseFloat($("inHumedad").value) || 0));
-  const ts = parseFloat($("inTs").value) || PARAMS.ts_defecto.valor;
-  const precio = parseFloat($("inPrecio").value) || 0;
-  const precioProducto = parseFloat($("inPrecioProducto").value) || 0;
-  const corg = Math.min(1, Math.max(0, parseFloat($("inCorg").value) || 0));
-  const tPirolisis = parseFloat($("inTemp").value);
-  const pctLog = Math.min(100, Math.max(0, parseFloat($("inLogistica").value) || 0));
-  const auditoria = parseFloat($("inAuditoria").value) || 0;
-  const eprojPorT = parseFloat($("inEproject").value) || 0;
-  const umbralViab = parseFloat($("inUmbral").value) || 0;
-  const dosis = Math.max(0.1, parseFloat($("inDosis").value) || PARAMS.dosis_aplicacion.valor);
-  const mesesPago = Math.min(36, Math.max(6, parseInt($("inMesesPago").value) || 30));
+  const c = cfgActual();
+  const r = calcularEscenario(c);
+  const { maderaSeca, rendimiento, hcorg, certificable, qBiochar, cstored, pf, closs,
+          eproject, corcs, ingCarbono, ingProducto, ingTotal, neto } = r;
+  const costosTotales = r.costos;
+  const unidad = c.unidad, cantidad = c.cantidad, ts = c.ts, precio = c.precio,
+        precioProducto = c.precioProducto, corg = c.corg, tPirolisis = c.tPirolisis,
+        pctLog = c.pctLog, auditoria = c.auditoria, eprojPorT = c.eprojPorT,
+        umbralViab = c.umbralViab, dosis = c.dosis, mesesPago = c.mesesPago,
+        baseVerde = c.baseVerde, humedad = c.humedad;
 
-  // 1) Madera: t/ha = árboles × m³/árbol × densidad/1000 (datos de campo Fortaleza)
-  const tPorHa = arboles * m3Arbol * densidad / 1000;
   if (unidad === "ha") {
     $("tipUnidad").dataset.tip = "Se convierte con los datos de campo de Fortaleza: árboles/ha × m³/árbol × densidad ≈ " +
-      fmt(tPorHa, 0) + " t de madera seca por hectárea.";
+      fmt(r.tPorHa, 0) + " t de madera seca por hectárea.";
   }
-  let maderaSeca = unidad === "ha" ? cantidad * tPorHa : cantidad;
-  // Base seca contra peso verde: este selector duplica o reduce a la mitad el resultado
-  if (baseVerde) maderaSeca = maderaSeca * (1 - humedad / 100);
-
-  // 2) Curvas dependientes de temperatura de pirólisis (supuesto, editable)
-  const rendimiento = interpolar(CURVAS.temps, CURVAS.rendimiento, tPirolisis); // %
-  const hcorg = interpolar(CURVAS.temps, CURVAS.hcorg, tPirolisis);
-
-  // 3) Elegibilidad: H/Corg estrictamente < 0.70, si no → cero créditos
-  const certificable = hcorg < PARAMS.umbral_hcorg.valor;
   document.body.classList.toggle("no-certificable", !certificable);
   $("lecturaH").classList.toggle("mal", !certificable);
-
-  // 4) Cadena física
-  const qBiochar = maderaSeca * rendimiento / 100;
-  const cstored = calcCstored(qBiochar, corg);                       // Ec. 6.1
-  const pf = calcPF(hcorg, ts);                                      // Ec. 6.4
-  const closs = calcCloss(cstored, pf);                              // Ec. 6.3
-  const eproject = eprojPorT * qBiochar;
-  const corcs = certificable
-    ? calcCORCs(cstored, PARAMS.cbaseline.valor, closs, eproject, PARAMS.eleakage.valor) // Ec. 5.1
-    : 0;
-
-  // 5) Economía: dos flujos independientes y compatibles (con restricción
-  //    contractual de no doble reclamo del carbono)
-  const ingCarbono = corcs * precio;
-  const ingProducto = qBiochar * precioProducto;
-  const ingTotal = ingCarbono + ingProducto;
-  const costosTotales = ingTotal * pctLog / 100 + auditoria;
-  const neto = ingTotal - costosTotales;
 
   // 6) Tierra necesaria para colocar la producción
   const haNecesarias = qBiochar / dosis;
@@ -1349,7 +1720,7 @@ function recalc() {
 
   // Cadena visible
   const etiquetaMadera = unidad === "ha"
-    ? "Madera seca — " + fmt(cantidad, 0) + " ha × " + fmt(tPorHa, 0) + " t/ha" + (baseVerde ? " × (1 − " + fmt(humedad, 0) + " %)" : "")
+    ? "Madera seca — " + fmt(cantidad, 0) + " ha × " + fmt(r.tPorHa, 0) + " t/ha" + (baseVerde ? " × (1 − " + fmt(humedad, 0) + " %)" : "")
     : "Madera seca" + (baseVerde ? " — × (1 − " + fmt(humedad, 0) + " %)" : "");
   renderCadena([
     { nombre: etiquetaMadera, valor: fmt(maderaSeca, 1), unidad: "t", eq: "sup", eqLabel: unidad === "ha" ? "dato Fortaleza" : "entrada" },
@@ -1412,6 +1783,15 @@ function recalc() {
   setNum("outEqAutos", corcs / PARAMS.eq_auto.valor, 0);
   setNum("outEqArboles", corcs / PARAMS.eq_arbol.valor, 0);
   setNum("outEqVuelos", corcs / PARAMS.eq_vuelo.valor, 0);
+
+  // Ingresos brutos del encabezado, Eproject desglosado y paneles analíticos
+  setNum("outBruto", ingTotal, 0, "$");
+  $("outEprojTotal").textContent = fmt(eprojPorT, 3);
+  renderEquilibrio(c, r);
+  renderSensibilidad(c, r);
+  renderEscenarios(c, r);
+  renderPlan(c);
+  actualizarChecklist(r);
 }
 
 /* ===========================================================================
@@ -1476,9 +1856,21 @@ document.addEventListener("DOMContentLoaded", () => {
   $("inUnidad").addEventListener("change", cambioUnidad);
   $("inBase").addEventListener("change", cambioBase);
   ["inCantidad","inArboles","inM3Arbol","inDensidad","inHumedad","inTs","inPrecio",
-   "inPrecioProducto","inCorg","inTemp","inLogistica","inAuditoria","inEproject",
-   "inUmbral","inDosis","inPAserrada","inPLena","inPCarbon","inMesesPago"]
+   "inPrecioProducto","inCorg","inTemp","inLogistica","inAuditoria","inUmbral","inDosis",
+   "inEprojTransporte","inEprojEnergia","inEprojProceso",
+   "inPAserrada","inPLena","inPCarbon","inMesesPago","inHaAnio","inAnios"]
     .forEach(id => $(id).addEventListener("input", recalc));
+  poblarSelectCorridas();
+  construirChecklist();
+  $("btnAplicarCorrida").addEventListener("click", aplicarCorrida);
+  $("btnImprimir").addEventListener("click", () => window.print());
+  // Al imprimir se abren todos los paneles y luego se restauran
+  window.addEventListener("beforeprint", () => {
+    document.querySelectorAll("details.panel").forEach(d => { d.dataset.abierto = d.open ? "1" : "0"; d.open = true; });
+  });
+  window.addEventListener("afterprint", () => {
+    document.querySelectorAll("details.panel").forEach(d => { d.open = d.dataset.abierto === "1"; });
+  });
   iniciarTooltips();
   iniciarInteraccionCurvas();
   cambioUnidad();    // fija visibilidad de campos por unidad
