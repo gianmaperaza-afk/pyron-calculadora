@@ -251,6 +251,7 @@
   th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--dorado-claro); vertical-align: top; }
   th { font-size: .75rem; letter-spacing: .05em; text-transform: uppercase; color: var(--verde-medio); }
   td.num { font-variant-numeric: tabular-nums; text-align: right; }
+  th.num { text-align: right; }
   .tabla-scroll { overflow-x: auto; }
   td input[type="number"] {
     width: 6.5rem; padding: .3rem .4rem; font-size: .9rem;
@@ -671,22 +672,10 @@
   </details>
 </section>
 
-<!-- ==================== 9. ELEGIBILIDAD ==================== -->
-<section>
-  <details class="panel">
-    <summary>9 · Elegibilidad y ruta regulatoria <span class="contador-fuentes" id="chipElegibilidad"></span></summary>
-    <div class="contenido">
-      <p style="font-size:.9rem;margin-bottom:.8rem">Requisitos para que los créditos lleguen a emitirse. Los dos
-        primeros se evalúan solos con el cálculo actual; los demás se marcan a mano conforme avanzan los trámites.</p>
-      <ul id="listaElegibilidad" style="list-style:none;display:flex;flex-direction:column;gap:.55rem"></ul>
-    </div>
-  </details>
-</section>
-
 <!-- ==================== 10. VALOR ALTERNATIVO ==================== -->
 <section>
   <details class="panel">
-    <summary>10 · Costo de oportunidad de la madera</summary>
+    <summary>9 · Costo de oportunidad de la madera</summary>
     <div class="contenido">
   <p style="font-size:.9rem;margin-bottom:.8rem">Qué valdría la misma madera seca en usos alternativos.
     Todos los precios son editables (fuente: Pendiente de verificación).</p>
@@ -707,7 +696,7 @@
 
 <!-- ==================== 6. FLUJO DE CAJA ==================== -->
 <section>
-  <h2>11 · Línea de tiempo de flujo de caja (esquemática)</h2>
+  <h2>10 · Línea de tiempo de flujo de caja (esquemática)</h2>
   <p style="font-size:.9rem;margin-bottom:.8rem">
     El proyecto exige capital propio durante la fase sin ingreso: los CORCs se pagan tras la primera
     verificación. Meses hasta el primer pago:
@@ -1590,51 +1579,6 @@ function renderEquilibrio(c, r) {
   $("outEqPrecio").textContent = precioMin <= 0 ? "0 · lo cubre el producto" : fmt(precioMin, 2);
 }
 
-/* Lista de elegibilidad: los dos primeros puntos se evalúan solos */
-const CHECKLIST = [
-  { auto: "hcorg",   txt: "H/Corg del biochar por debajo de 0.70", det: "Ec. 6.5 · umbral de elegibilidad de Puro.earth, evaluado con la temperatura y la curva actuales" },
-  { auto: "elemental", txt: "Análisis elemental del biochar de PYRON", det: "Corridas #1 a #3, laboratorio de Operaciones Unitarias de la UVG" },
-  { auto: "lca",     txt: "Ciclo de vida del proceso documentado (Eproject)", det: "Mientras esté en cero, los CORCs mostrados no descuentan las emisiones del proceso" },
-  { id: "chkInab",     txt: "Origen legal de la madera certificado por el INAB", det: "Requisito de sostenibilidad de la biomasa" },
-  { id: "chkMarn",     txt: "Licencia ambiental de la planta otorgada por el MARN", det: "Requisito para operar la unidad de pirólisis" },
-  { id: "chkContrato", txt: "Contrato de venta con cláusula de no doble reclamo", det: "El comprador del biochar no puede reclamar el carbono asociado" },
-  { id: "chkPuro",     txt: "Proyecto registrado ante Puro.earth y auditoría de terceros", det: "Paso final antes de la emisión de los CORCs" }
-];
-
-function construirChecklist() {
-  $("listaElegibilidad").innerHTML = CHECKLIST.map((it, i) =>
-    '<li class="chk" data-i="' + i + '">' +
-      (it.auto ? '<span class="marca pendiente">·</span>'
-               : '<input type="checkbox" id="' + it.id + '" style="width:1.15rem;height:1.15rem;margin-top:.15rem;accent-color:#2D6A4F">') +
-      "<span><strong>" + it.txt + "</strong><br><span class=\"detalle\">" + it.det + "</span></span>" +
-    "</li>").join("");
-  $("listaElegibilidad").querySelectorAll("input[type=checkbox]").forEach(cb =>
-    cb.addEventListener("change", () => actualizarContadorElegibilidad()));
-}
-
-function actualizarChecklist(r) {
-  const estados = {
-    hcorg: r.certificable,
-    elemental: CORRIDAS_PYRON.some(co => co.h_corg !== null && co.h_corg !== undefined),
-    lca: eprojectPorTonelada() > 0
-  };
-  CHECKLIST.forEach((it, i) => {
-    if (!it.auto) return;
-    const marca = $("listaElegibilidad").querySelector('li[data-i="' + i + '"] .marca');
-    if (!marca) return;
-    const ok = estados[it.auto];
-    marca.className = "marca " + (ok ? "ok" : (it.auto === "hcorg" ? "mal" : "pendiente"));
-    marca.textContent = ok ? "✓" : (it.auto === "hcorg" ? "✕" : "·");
-  });
-  actualizarContadorElegibilidad();
-}
-
-function actualizarContadorElegibilidad() {
-  const auto = $("listaElegibilidad").querySelectorAll(".marca.ok").length;
-  const manual = $("listaElegibilidad").querySelectorAll("input[type=checkbox]:checked").length;
-  $("chipElegibilidad").textContent = (auto + manual) + " de " + CHECKLIST.length + " requisitos cumplidos";
-}
-
 /* Ec. 6.5 aplicada al reporte de laboratorio de una corrida */
 function poblarSelectCorridas() {
   $("inCorrida").innerHTML = CORRIDAS_PYRON.map(co =>
@@ -1739,7 +1683,7 @@ function recalc() {
   ]);
 
   // Resultados grandes
-  setNum("outNeto", neto, 0);
+  setNum("outNeto", neto, 0, "$");
   setNum("outCORCs", corcs, 0);
   setNum("outBiocharT", qBiochar, 0);
   setNum("outCostos", costosTotales, 0, "−");
@@ -1791,7 +1735,6 @@ function recalc() {
   renderSensibilidad(c, r);
   renderEscenarios(c, r);
   renderPlan(c);
-  actualizarChecklist(r);
 }
 
 /* ===========================================================================
@@ -1861,7 +1804,6 @@ document.addEventListener("DOMContentLoaded", () => {
    "inPAserrada","inPLena","inPCarbon","inMesesPago","inHaAnio","inAnios"]
     .forEach(id => $(id).addEventListener("input", recalc));
   poblarSelectCorridas();
-  construirChecklist();
   $("btnAplicarCorrida").addEventListener("click", aplicarCorrida);
   $("btnImprimir").addEventListener("click", () => window.print());
   // Al imprimir se abren todos los paneles y luego se restauran
