@@ -22,7 +22,7 @@
   Parámetros fijos, dentro de la fórmula pero no editables en la interfaz:
     rendimiento de biochar = 33 %
     temperatura del suelo de la región de uso = 26 °C
-    Corg del biochar = según especie (hule 0.867)
+    Corg del biochar = Ctot por especie − Cinorg (Ec. 6.2); hule 0.867 − 0.005 = 0.862
 
   CASO DE PRUEBA (se auto-verifica al cargar, ver selfTest()):
 
@@ -38,10 +38,11 @@
   Caso 2 — valores por defecto de la interfaz (100 ha, hule, 350 °C):
       Madera seca = 100 × 500 × 1.47 × 0.600 = 44,100 t
       Biochar     = 44,100 × 0.33            = 14,553 t
-      Cstored     = 14,553 × 0.867 × 44/12   = 46,263.987 tCO2e
+      Corg        = 0.867 − 0.005 (Ec. 6.2) = 0.862
+      Cstored     = 14,553 × 0.862 × 44/12   = 45,997.182 tCO2e
       H/Corg a 350 °C                        = 0.58
       PF          = 88.37 − 40.59 × 0.58     = 64.8278 %
-      CORCs       = 46,263.987 × 0.648278    = 29,991.9 tCO2e
+      CORCs       = 45,997.182 × 0.648278    = 29,819.0 tCO2e
       Ingreso por carbono  = CORCs × 150
       Ingreso por producto = 14,553 × 200
       Ingreso total        = suma de ambos
@@ -396,7 +397,7 @@
    tipo: "metodologia" | "paper" | "dato_empresa" | "medicion_propia" | "supuesto"
    =========================================================================== */
 
-const FUENTE_PURO = "Puro.earth (2025). Puro.earth Certification Framework — Biochar, Edition 2025, version 2. Aprobado 27-nov-2025.";
+const FUENTE_PURO = "Puro.earth. (2025). Puro.earth Certification Framework: Biochar (Edition 2025, Version 2). Puro.earth Oy. Aprobado 27-nov-2025.";
 const FUENTE_RUBBERWOOD = "Characteristics of Biochars Derived from the Pyrolysis and Co-Pyrolysis of Rubberwood Sawdust and Sewage Sludge for Further Applications. Sustainability, 2022, 14(7), 3829.";
 const URL_RUBBERWOOD = "https://www.mdpi.com/2071-1050/14/7/3829";
 const PENDIENTE = "Pendiente de verificación";
@@ -404,27 +405,33 @@ const PENDIENTE = "Pendiente de verificación";
 const PARAMS = {
   factor_co2: {
     valor: 44 / 12, unidad: "tCO₂e/tC",
-    fuente: "Estequiométrico: razón de masas molares CO₂/C (valor exacto 3.666667). Ec. 6.1, " + FUENTE_PURO,
+    fuente: "Estequiométrico: razón de masas molares CO₂/C (valor exacto 3.666667). Ec. 6.1, página 94. " + FUENTE_PURO,
     url: "", tipo: "metodologia",
     nombre: "Factor de conversión C → CO₂ (44/12)"
   },
   umbral_hcorg: {
     valor: 0.70, unidad: "adimensional",
-    fuente: "Umbral de elegibilidad H/Corg < 0.70. " + FUENTE_PURO,
+    fuente: "Regla 3.5.1, página 33: el documento exige H/Corg \"strictly below 0.70\". Criterio binario de elegibilidad, sin factor reducido. " + FUENTE_PURO,
     url: "", tipo: "metodologia",
     nombre: "Umbral de elegibilidad H/Corg"
   },
   tabla_6_1: {
     valor: "M, a por Ts (7–40 °C)", unidad: "—",
-    fuente: "Tabla 6.1, " + FUENTE_PURO,
+    fuente: "Tabla 6.1, página 101. Filas verificadas contra el documento (7, 15, 20, 26, 33 y 40 °C). " + FUENTE_PURO,
     url: "", tipo: "metodologia",
     nombre: "Parámetros de regresión de persistencia (Tabla 6.1)"
   },
   corg_hule: {
     valor: 0.867, unidad: "fracción",
-    fuente: FUENTE_RUBBERWOOD + " Reporta 86.70 % en peso de carbono (carbono total, no necesariamente orgánico; pirólisis lenta 550 °C, lecho móvil, 10 °C/min, 45 min, N₂).",
+    fuente: FUENTE_RUBBERWOOD + " Reporta 86.70 % en peso de carbono TOTAL (pirólisis lenta 550 °C, lecho móvil, 10 °C/min, 45 min, N₂). La regla 6.1.6 (página 96) prohíbe usar carbono total: el carbono orgánico se obtiene con la Ec. 6.2, Corg = Ctot − Cinorg.",
     url: URL_RUBBERWOOD, tipo: "paper",
-    nombre: "Corg del biochar de hule (fijo en la fórmula)"
+    nombre: "Ctot del biochar de hule (carbono total)"
+  },
+  cinorg: {
+    valor: 0.005, unidad: "kg C/kg biochar seco",
+    fuente: "Regla 6.1.6, opción (b), página 96: valor por defecto de carbono inorgánico para biochar de biomasa leñosa. Solo admisible si antes se reportaron al menos 2 análisis de lotes distintos por la opción (a) con Cinorg consistentemente bajo 0.5 % en base seca. Ec. 6.2: Corg = Ctot − Cinorg.",
+    url: "", tipo: "metodologia",
+    nombre: "Cinorg (carbono inorgánico, opción por defecto)"
   },
   corg_otras: {
     valor: "0.72 – 0.80", unidad: "fracción",
@@ -470,7 +477,7 @@ const PARAMS = {
   },
   ts_uso: {
     valor: 26, unidad: "°C",
-    fuente: PENDIENTE + " — temperatura media anual del suelo en la Costa Sur de Guatemala; debe consultarse el dataset derivado de Lembrechts et al. (2022), capa 5–15 cm. Fija en la fórmula.",
+    fuente: PENDIENTE + " — valor de trabajo para la Costa Sur de Guatemala. La regla 6.2.4 (página 102) obliga a usar el dataset oficial de Puro.earth derivado de Lembrechts et al. (2022), capa SBIO1_Annual_Mean_Temperature_5_15cm, según la región de PRIMER USO del biochar, con promedios por región administrativa subnacional; no se admite estimación propia. Mínimo conservador 7 °C y redondeo al entero superior.",
     url: "", tipo: "supuesto",
     nombre: "Temperatura del suelo de la región de uso"
   },
@@ -488,21 +495,21 @@ const PARAMS = {
   },
   eproject_por_t: {
     valor: 0, unidad: "tCO₂e/t biochar",
-    fuente: PENDIENTE + " — requiere análisis de ciclo de vida del proceso (Ec. 5.1). Valor de trabajo 0: los CORCs mostrados aún no descuentan emisiones del proceso.",
+    fuente: PENDIENTE + " — la sección 7 (desde la página 109) exige ACV de la cuna a la tumba según ISO 14040/44 e ISO 14064: Eproject = Eops + Eemb, con Eops = Ebiomass + Eproduction + Euse. La regla 7.3.4 exime a la madera de replantación de la carga de emisiones de cultivo. Valor de trabajo 0: los CORCs mostrados aún no descuentan emisiones del proceso.",
     url: "", tipo: "supuesto",
     nombre: "Eproject (emisiones del proyecto)"
   },
   eleakage: {
     valor: 0, unidad: "tCO₂e",
-    fuente: PENDIENTE + " — sin fugas identificadas; sujeto a evaluación en la certificación.",
+    fuente: PENDIENTE + " — la sección 8 (página 125) distingue fuga ecológica y fuga de mercado o desplazamiento de actividad; para biochar señala el desvío de biomasa desde bioenergía u otros biomateriales. Requiere evaluación propia.",
     url: "", tipo: "supuesto",
     nombre: "Eleakage (fugas)"
   },
   cbaseline: {
     valor: 0, unidad: "tCO₂e",
-    fuente: PENDIENTE + " — la madera de replantación no tiene almacenamiento de carbono en el escenario base; sujeto a validación con Puro.earth.",
-    url: "", tipo: "supuesto",
-    nombre: "Cbaseline (escenario base)"
+    fuente: "Sección 6.3, página 106: las reglas 6.3.1 a 6.3.4 aplican solo a Retrofit Facility y Charcoal Repurpose. Para una instalación nueva que procesa residuo de replantación no hay carbono previamente almacenado en el escenario base, por lo que Cbaseline es nulo. " + FUENTE_PURO,
+    url: "", tipo: "metodologia",
+    nombre: "Cbaseline (escenario base, instalación nueva)"
   },
   precio_aserrada: {
     valor: 100, unidad: "USD/t",
@@ -571,16 +578,22 @@ const CURVA_HCORG = {
   valores: [0.78, 0.66, 0.58, 0.53, 0.48]
 };
 
-/* Corg del biochar por especie (fijo en la fórmula, no editable). */
+/* Carbono inorgánico: opción (b) de la regla 6.1.6 para biomasa leñosa.
+   Requiere haber reportado antes 2 análisis de lotes distintos con Cinorg
+   consistentemente por debajo de 0.5 % en base seca. */
+const CINORG = 0.005;   // kg C inorgánico por kg de biochar seco
+
+/* Carbono TOTAL del biochar por especie. El carbono orgánico se obtiene con la
+   Ec. 6.2 (Corg = Ctot − Cinorg): la metodología no permite usar carbono total. */
 const ESPECIES = {
-  hule:      { nombre: "Hevea brasiliensis", corg: 0.867, tipo: "paper",
+  hule:      { nombre: "Hevea brasiliensis", ctot: 0.867, tipo: "paper",
                nota: "Corg 0.867: biochar de aserrín de hule por pirólisis lenta (Sustainability 2022, 14(7):3829). Ese 86.70 % es carbono total, no necesariamente orgánico; la metodología exige carbono orgánico." },
-  limon:     { nombre: "Citrus limon", corg: 0.75, tipo: "supuesto" },
-  eucalipto: { nombre: "Eucalyptus spp.", corg: 0.80, tipo: "supuesto" },
-  pino:      { nombre: "Pinus oocarpa", corg: 0.78, tipo: "supuesto" },
-  teca:      { nombre: "Tectona grandis", corg: 0.76, tipo: "supuesto" },
-  melina:    { nombre: "Gmelina arborea", corg: 0.72, tipo: "supuesto" },
-  mango:     { nombre: "Mangifera indica", corg: 0.72, tipo: "supuesto" }
+  limon:     { nombre: "Citrus limon", ctot: 0.75, tipo: "supuesto" },
+  eucalipto: { nombre: "Eucalyptus spp.", ctot: 0.80, tipo: "supuesto" },
+  pino:      { nombre: "Pinus oocarpa", ctot: 0.78, tipo: "supuesto" },
+  teca:      { nombre: "Tectona grandis", ctot: 0.76, tipo: "supuesto" },
+  melina:    { nombre: "Gmelina arborea", ctot: 0.72, tipo: "supuesto" },
+  mango:     { nombre: "Mangifera indica", ctot: 0.72, tipo: "supuesto" }
 };
 const NOTA_SIN_FUENTE = "Corg como estimación preliminar, pendiente de caracterización en laboratorio.";
 
@@ -589,8 +602,9 @@ const NOTA_SIN_FUENTE = "Corg como estimación preliminar, pendiente de caracter
    =========================================================================== */
 
 function paramsPersistencia(tsCelsius) {
-  // Limitar al rango 7–40 °C (mínimo 7 °C por decisión conservadora de la metodología)
-  const ts = Math.min(40, Math.max(7, Math.round(tsCelsius)));
+  // Regla 6.2.4: la temperatura del suelo se redondea al entero SUPERIOR más cercano.
+  // Mínimo 7 °C por decisión conservadora de la metodología; la Tabla 6.1 termina en 40 °C.
+  const ts = Math.min(40, Math.max(7, Math.ceil(tsCelsius)));
   return TABLA_6_1[ts];
 }
 
@@ -652,13 +666,14 @@ function selfTest() {
   const madera2 = 100 * 500 * 1.47 * 600 / 1000;          // 44,100 t
   const biochar2 = madera2 * RENDIMIENTO / 100;           // 14,553 t
   const hcorg2 = hcorgDe(TEMP_OPTIMA);                    // 0.58
-  const cstored2 = calcCstored(biochar2, ESPECIES.hule.corg);
+  const cstored2 = calcCstored(biochar2, ESPECIES.hule.ctot - CINORG);
   const pf2 = calcPF(hcorg2, TS_USO);
   const corcs2 = calcCORCs(cstored2, 0, calcCloss(cstored2, pf2), 0, 0);
   const ok2 =
     Math.abs(madera2 - 44100) < 1e-6 &&
     Math.abs(biochar2 - 14553) < 1e-6 &&
     Math.abs(hcorg2 - 0.58) < 1e-9 &&
+    Math.abs(ESPECIES.hule.ctot - CINORG - 0.862) < 1e-9 &&
     Math.abs(corcs2 - cstored2 * pf2 / 100) < 1e-6 &&
     hcorg2 < PARAMS.umbral_hcorg.valor;
   console.assert(ok2, "FALLO caso 2 (defectos de la interfaz)", { madera2, biochar2, hcorg2, cstored2, pf2, corcs2 });
@@ -925,7 +940,7 @@ function recalc() {
   const precio = parseFloat($("inPrecio").value) || 0;
   const precioProducto = parseFloat($("inPrecioProducto").value) || 0;
   const tPirolisis = parseFloat($("inTemp").value);
-  const corg = especie.corg;
+  const corg = Math.max(0, especie.ctot - CINORG);   // Ec. 6.2
 
   // 1) Madera seca: t/ha = árboles × m³/árbol × densidad/1000 (datos de campo Fortaleza)
   const tPorHa = arboles * m3Arbol * densidad / 1000;
@@ -979,7 +994,7 @@ function recalc() {
 function cambioEspecie() {
   const e = ESPECIES[$("inEspecie").value];
   $("tipEspecie").dataset.tip = e.nombre + " — " + (e.nota || NOTA_SIN_FUENTE) +
-    " Corg usado en la fórmula: " + e.corg + ".";
+    " Ctot " + e.ctot + " − Cinorg " + CINORG + " = Corg " + (e.ctot - CINORG).toFixed(3) + " (Ec. 6.2).";
   recalc();
 }
 

@@ -33,17 +33,17 @@
   Caso 2 — datos de campo Grupo Fortaleza (valores por defecto de la interfaz):
     Entrada:
       100 ha | 500 árboles/ha × 1.47 m³/árbol × 600 kg/m³ (base seca)
-      450 °C → rendimiento 29 %, H/Corg 0.48 | Corg 0.867 | Ts 26 °C
+      450 °C → rendimiento 29 %, H/Corg 0.48 | Ctot 0.867 − Cinorg 0.005 = Corg 0.862 | Ts 26 °C
       Eproject = 0 | CORC $150 | producto $200/t
     Cálculo:
       Madera seca          = 100 × 500 × 1.47 × 0.600 = 44,100 t
       Biochar              = 44,100 × 0.29            = 12,789 t
-      Cstored              = 12,789 × 0.867 × 44/12   = 40,656.231 tCO2e
+      Cstored              = 12,789 × 0.862 × 44/12   = 40421.766 tCO2e
       PF                   = 88.37 − 40.59 × 0.48     = 68.8868 %
-      CORCs                = 40,656.231 × 0.688868    = 28,006.78 tCO2e (≈ 28,007)
-      Ingreso por carbono  = 28,006.78 × 150          = $4,201,016
+      CORCs                = 40421.766 × 0.688868    = 27845.26 tCO2e
+      Ingreso por carbono  = 27845.26 × 150          = $4,176,789
       Ingreso por producto = 12,789 × 200             = $2,557,800
-      Ingreso total                                   = $6,758,816
+      Ingreso total                                   = $6,734,589
     Con el selector en peso verde y 50 % de humedad, todos los valores
     anteriores se reducen exactamente a la mitad.
   ============================================================================
@@ -444,6 +444,10 @@
       <label for="inPrecioProducto">Precio del producto (USD/t biochar) <button type="button" class="info-btn" data-tip="Precio de venta del biochar como enmienda agrícola. Pendiente de verificación. Flujo independiente y adicional al de créditos.">i</button></label>
       <input type="number" id="inPrecioProducto" value="200" min="0" step="any">
     </div>
+    <div class="campo">
+      <label for="inCinorg">Cinorg · carbono inorgánico (fracción) <button type="button" class="info-btn" data-tip="Regla 6.1.6, opción (b), página 96: 0.005 kg C por kg de biochar seco es el valor por defecto para biomasa leñosa. Solo admisible si antes se reportaron 2 análisis de lotes distintos por la opción (a) con Cinorg bajo 0.5 % en base seca. Si no, debe medirse en laboratorio acreditado (DIN 51726, ISO 925, ASTM D4373-21 o equivalente).">i</button></label>
+      <input type="number" id="inCinorg" value="0.005" min="0" max="1" step="any">
+    </div>
     <div class="campo" id="campoCorg">
       <label for="inCorg">Corg del biochar (fracción) <button type="button" class="info-btn" id="tipCorg" data-tip="">i</button></label>
       <input type="number" id="inCorg" value="0.867" min="0" max="1" step="any">
@@ -562,8 +566,11 @@
         </tbody>
       </table>
       <p style="font-size:.8rem;color:var(--verde-medio);margin-top:.6rem;border-left:3px solid var(--dorado);padding-left:.7rem">
-        El comprador del producto no puede reclamar el carbono asociado. Ambos flujos son compatibles
-        siempre que esa restricción conste por escrito en el contrato de venta, según la metodología Puro.earth.
+        <strong>Sección 3.8, página 79.</strong> El derecho a reclamar los CORCs es exclusivo del CO2 Removal Supplier:
+        el comprador del biochar no adquiere ningún derecho sobre el carbono. La regla 3.8.3 exige que toda transacción
+        se registre por escrito y que el documento declare que la remoción ya fue reportada bajo el Puro Standard,
+        remita a las reglas de no doble conteo y obligue a transmitir esa información a usuarios subsecuentes.
+        Las reglas 3.8.2 y 3.8.4 extienden la advertencia al etiquetado del producto y a su publicidad en línea.
       </p>
     </div>
   </div>
@@ -589,19 +596,23 @@
       <input type="number" id="inAuditoria" value="5000" min="0" step="any">
     </div>
     <div class="campo">
-      <label for="inEprojTransporte">Eproject · transporte (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Emisiones del acarreo de madera al reactor y del biochar al campo. Estimación preliminar: pendiente del inventario de flota y distancias de Fortaleza.">i</button></label>
-      <input type="number" id="inEprojTransporte" value="0" min="0" step="any">
+      <label for="inEbiomass">Ebiomass (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Ec. 7.2: emisiones operacionales del abastecimiento de biomasa — recolección, transporte y centro de acopio desde el primer punto de reunión hasta la puerta de la planta (regla 7.3.5). La regla 7.3.4 exime a la madera de replantación de la carga de cultivo, porque el árbol se sembró para látex.">i</button></label>
+      <input type="number" id="inEbiomass" value="0" min="0" step="any">
     </div>
     <div class="campo">
-      <label for="inEprojEnergia">Eproject · energía (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Emisiones de la energía consumida por el reactor y los equipos auxiliares. Estimación preliminar: pendiente de medición de consumo.">i</button></label>
-      <input type="number" id="inEprojEnergia" value="0" min="0" step="any">
+      <label for="inEproduction">Eproduction (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Ec. 7.2: emisiones operacionales asociadas a la producción del biochar — energía del reactor y equipos auxiliares, insumos, agua, químicos, empaque y tratamiento de residuos.">i</button></label>
+      <input type="number" id="inEproduction" value="0" min="0" step="any">
     </div>
     <div class="campo">
-      <label for="inEprojProceso">Eproject · proceso (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Emisiones no capturadas del propio proceso de pirólisis (gases de síntesis quemados, fugas). Estimación preliminar: pendiente del análisis de ciclo de vida.">i</button></label>
-      <input type="number" id="inEprojProceso" value="0" min="0" step="any">
+      <label for="inEuse">Euse (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Ec. 7.2: emisiones operacionales del abastecimiento del uso final, incluida la entrega y aplicación del biochar en campo.">i</button></label>
+      <input type="number" id="inEuse" value="0" min="0" step="any">
     </div>
     <div class="campo">
-      <label>Eproject total (tCO₂e/t biochar)</label>
+      <label for="inEemb">Eemb · infraestructura (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Ec. 7.1: emisiones incorporadas de producción, uso y disposición de infraestructura y activos, más cambios directos de uso de suelo.">i</button></label>
+      <input type="number" id="inEemb" value="0" min="0" step="any">
+    </div>
+    <div class="campo">
+      <label>Eproject total = Eops + Eemb (tCO₂e/t biochar) <button type="button" class="info-btn" data-tip="Sección 7, desde la página 109: ACV de la cuna a la tumba según ISO 14040/44 e ISO 14064. Eproject = Eops + Eemb (Ec. 7.1), con Eops = Ebiomass + Eproduction + Euse (Ec. 7.2). El documento no publica factores de emisión por defecto: remite a las plantillas de Puro.earth.">i</button></label>
       <div id="outEprojTotal" style="padding:.55rem .6rem;font-size:1.05rem;border:1.5px dashed var(--dorado-claro);border-radius:6px;background:#FFFDF8">—</div>
     </div>
     <div class="campo">
@@ -699,8 +710,8 @@
   <h2>10 · Línea de tiempo de flujo de caja (esquemática)</h2>
   <p style="font-size:.9rem;margin-bottom:.8rem">
     El proyecto exige capital propio durante la fase sin ingreso: los CORCs se pagan tras la primera
-    verificación. Meses hasta el primer pago:
-    <input type="number" id="inMesesPago" value="30" min="6" max="36" step="1" style="width:4.5rem;padding:.2rem .4rem;border:1.5px solid var(--dorado-claro);border-radius:5px;background:#fff;color:var(--verde-oscuro)">
+    verificación. Meses hasta el primer pago <button type="button" class="info-btn" data-tip="El documento no fija un plazo. Los CORCs se emiten tras la Output Audit del período de monitoreo en que el biochar fue usado, y las Output Audits ocurren dentro del año, de modo que el rezago práctico va de meses hasta poco más de un año. Antes se requiere una Production Facility Audit de tercera parte en sitio (regla 3.1.2).">i</button>:
+    <input type="number" id="inMesesPago" value="12" min="6" max="36" step="1" style="width:4.5rem;padding:.2rem .4rem;border:1.5px solid var(--dorado-claro);border-radius:5px;background:#fff;color:var(--verde-oscuro)">
   </p>
   <svg id="graficoFlujo" class="grafico" viewBox="0 0 900 320" role="img" aria-label="Flujo de caja acumulado, 36 meses"></svg>
 </section>
@@ -744,7 +755,7 @@
    tipo: "metodologia" | "paper" | "medicion_propia" | "supuesto"
    =========================================================================== */
 
-const FUENTE_PURO = "Puro.earth (2025). Puro.earth Certification Framework — Biochar, Edition 2025, version 2. Aprobado 27-nov-2025.";
+const FUENTE_PURO = "Puro.earth. (2025). Puro.earth Certification Framework: Biochar (Edition 2025, Version 2). Puro.earth Oy. Aprobado 27-nov-2025.";
 const FUENTE_RUBBERWOOD = "Characteristics of Biochars Derived from the Pyrolysis and Co-Pyrolysis of Rubberwood Sawdust and Sewage Sludge for Further Applications. Sustainability, 2022, 14(7), 3829.";
 const URL_RUBBERWOOD = "https://www.mdpi.com/2071-1050/14/7/3829";
 const PENDIENTE = "Pendiente de verificación";
@@ -752,19 +763,19 @@ const PENDIENTE = "Pendiente de verificación";
 const PARAMS = {
   factor_co2: {
     valor: 44 / 12, unidad: "tCO₂e/tC",
-    fuente: "Estequiométrico: razón de masas molares CO₂/C (valor exacto 3.666667). Ec. 6.1, " + FUENTE_PURO,
+    fuente: "Estequiométrico: razón de masas molares CO₂/C (valor exacto 3.666667). Ec. 6.1, página 94. " + FUENTE_PURO,
     url: "", tipo: "metodologia",
     nombre: "Factor de conversión C → CO₂ (44/12)"
   },
   umbral_hcorg: {
     valor: 0.70, unidad: "adimensional",
-    fuente: "Umbral de elegibilidad H/Corg < 0.70. " + FUENTE_PURO,
+    fuente: "Regla 3.5.1, página 33: el documento exige H/Corg \"strictly below 0.70\". Criterio binario, sin factor reducido. La regla 3.5.2 obliga a caracterizar por separado cada corriente de char del reactor, salvo que la secundaria sea menos del 1 % de la masa seca. " + FUENTE_PURO,
     url: "", tipo: "metodologia",
     nombre: "Umbral de elegibilidad H/Corg"
   },
   tabla_6_1: {
     valor: "M, a por Ts (7–40 °C)", unidad: "—",
-    fuente: "Tabla 6.1, " + FUENTE_PURO,
+    fuente: "Tabla 6.1, página 101. Filas verificadas contra el documento (7, 15, 20, 26, 33 y 40 °C). El modelo corresponde a un horizonte de 200 años (BC_TH200, Figura 6.1) y se apoya en la librería de Azzi et al. (2024). " + FUENTE_PURO,
     url: "", tipo: "metodologia",
     nombre: "Parámetros de regresión de persistencia (Tabla 6.1)"
   },
@@ -772,11 +783,11 @@ const PARAMS = {
     valor: 0.867, unidad: "fracción",
     fuente: FUENTE_RUBBERWOOD + " Reporta 86.70 % en peso de carbono (carbono TOTAL, no necesariamente orgánico; pirólisis lenta 550 °C, lecho móvil, 10 °C/min, 45 min, N₂). Editable.",
     url: URL_RUBBERWOOD, tipo: "paper",
-    nombre: "Corg biochar de hule (valor por defecto)"
+    nombre: "Ctot del biochar de hule (carbono total)"
   },
   ts_defecto: {
     valor: 26, unidad: "°C",
-    fuente: PENDIENTE + " — valor de trabajo para la Costa Sur de Guatemala; debe consultarse el dataset derivado de Lembrechts et al. (2022), temperatura media anual del suelo a 5–15 cm.",
+    fuente: PENDIENTE + " — valor de trabajo. La regla 6.2.4 (página 102) obliga a usar el dataset oficial de Puro.earth derivado de Lembrechts et al. (2022), capa SBIO1_Annual_Mean_Temperature_5_15cm, según la región de PRIMER USO del biochar, con promedios por región administrativa subnacional; no se admite estimación propia. Mínimo conservador 7 °C y redondeo al entero superior. Referencia: Lembrechts et al. (2022), Global maps of soil temperature, Global Change Biology 28(9), 3110–3144, https://doi.org/10.1111/gcb.16060",
     url: "", tipo: "supuesto",
     nombre: "Temperatura del suelo, región de uso (por defecto)"
   },
@@ -870,6 +881,18 @@ const PARAMS = {
     url: "", tipo: "supuesto",
     nombre: "Dosis de aplicación de biochar"
   },
+  cinorg: {
+    valor: 0.005, unidad: "kg C/kg biochar seco",
+    fuente: "Regla 6.1.6, opción (b), página 96: valor por defecto de carbono inorgánico para biochar de biomasa leñosa, admisible solo tras 2 análisis de lotes distintos por la opción (a) con Cinorg bajo 0.5 % en base seca. Ec. 6.2: Corg = Ctot − Cinorg.",
+    url: "", tipo: "metodologia",
+    nombre: "Cinorg (carbono inorgánico, opción por defecto)"
+  },
+  descuento_reversion: {
+    valor: 0, unidad: "fracción",
+    fuente: "Regla 3.6.16, página 76: el Reversal Risk Discount Factor RDF(c,p) = CMR(c,p) + CWD(c,p) × MIR(c) se resta sobre el resultado de la Ec. 6.1 y solo aplica a la Categoría R3, biochar vendido al consumidor final como producto de jardinería en retail (ejemplo listado: sustrato para macetas, 6.3 %). NO aplica a la venta agrícola a granel de PYRON. No existe buffer general en el estándar.",
+    url: "", tipo: "metodologia",
+    nombre: "Descuento por riesgo de reversión (no aplica)"
+  },
   precio_corc: {
     valor: 150, unidad: "USD/tCO₂e",
     fuente: PENDIENTE + " — verificar con transacciones recientes de CORCs de biochar.",
@@ -890,7 +913,7 @@ const PARAMS = {
   },
   eproject_por_t: {
     valor: 0, unidad: "tCO₂e/t biochar",
-    fuente: PENDIENTE + " — requiere análisis de ciclo de vida del proceso de PYRON (Ec. 5.1). Valor de trabajo 0: los CORCs mostrados NO descuentan aún emisiones del proceso.",
+    fuente: PENDIENTE + " — la sección 7 (desde la página 109) exige ACV de la cuna a la tumba según ISO 14040/44 e ISO 14064: Eproject = Eops + Eemb (Ec. 7.1), Eops = Ebiomass + Eproduction + Euse (Ec. 7.2). La regla 7.3.4 exime a la madera de replantación de la carga de cultivo. Valor de trabajo 0: los CORCs mostrados NO descuentan aún emisiones del proceso.",
     url: "", tipo: "supuesto",
     nombre: "Eproject (emisiones del proyecto)"
   },
@@ -929,7 +952,7 @@ const PARAMS = {
   },
   meses_primer_pago: {
     valor: 30, unidad: "meses",
-    fuente: PENDIENTE + " — plazo típico hasta primera verificación y pago; verificar con Puro.earth.",
+    fuente: PENDIENTE + " — el documento no fija plazo: los CORCs se emiten tras la Output Audit del período en que el biochar fue usado, y las Output Audits ocurren dentro del año (rezago práctico de meses a poco más de un año). El período de acreditación es de 10 años, renovable dos veces (regla 2.2.2, página 14).",
     url: "", tipo: "supuesto",
     nombre: "Meses hasta el primer pago de créditos"
   },
@@ -1015,8 +1038,13 @@ const REFS = {
     "<p><code>CORCs = Cstored − Cbaseline − Closs − Eproject − Eleakage</code></p><p>Unidades: tCO₂e.</p><p><strong>Fuente:</strong> " + FUENTE_PURO + " <span class='badge metodologia'>Metodología Puro.earth 2025 v2</span></p>" },
   "6.1": { t: "Ecuación 6.1 — Carbono almacenado", h:
     "<p><code>Cstored = Qbiochar × Corg × (44/12)</code></p><p>Qbiochar: masa seca de biochar elegible (t); Corg: fracción de carbono orgánico, base seca; 44/12 = 3.666667 exacto, estequiométrico (masas molares CO₂/C).</p><p><strong>Advertencia:</strong> el factor 44/12 se aplica sobre el carbono, nunca directamente sobre la masa de biochar.</p><p><strong>Fuente:</strong> " + FUENTE_PURO + " <span class='badge metodologia'>Metodología Puro.earth 2025 v2</span></p>" },
+  "6.2": { t: "Ecuación 6.2 — Carbono orgánico", h:
+    "<p><code>Corg = Ctot − Cinorg</code></p>" +
+    "<p>Regla 6.1.6, página 96: el carbono orgánico debe determinarse en laboratorio acreditado y <strong>no se permite usar carbono total</strong>. Normas admitidas para Ctot: ISO 16948:2015, ISO 29541:2025, DIN 51732:2014, ASTM E870-82 (que remite a ASTM E777-23), ASTM D5373 u otro analizador elemental de combustión seca con atestación de equivalencia. Para Cinorg: DIN 51726, ISO 925, ASTM D4373-21 o equivalente. Las submuestras de Ctot y Cinorg deben venir de la misma muestra enviada al laboratorio.</p>" +
+    "<p>Opción (b): para biomasa leñosa puede fijarse Cinorg = 0.005 kg C/kg de biochar seco, solo si ya se reportaron al menos 2 análisis de lotes distintos por la opción (a) con Cinorg consistentemente bajo 0.5 %.</p>" +
+    "<p><strong>Fuente:</strong> " + FUENTE_PURO + " <span class='badge metodologia'>Metodología Puro.earth 2025 v2</span></p>" },
   "6.3": { t: "Ecuación 6.3 — Pérdidas de almacenamiento", h:
-    "<p><code>Closs = Cstored × (100 − PF)/100</code></p><p><strong>Advertencia de interpretación:</strong> el documento original escribe <code>Closs = Cstored × (100 − PF)</code> sin dividir entre 100, lo cual es dimensionalmente inconsistente (daría 100× Cstored). Aquí se implementa la división entre 100 porque PF está en escala porcentual. Confirmar con Puro.earth antes de decisiones de inversión.</p><p><strong>Fuente:</strong> " + FUENTE_PURO + " <span class='badge metodologia'>Metodología Puro.earth 2025 v2</span></p>" },
+    "<p><code>Closs = Cstored × (100 − PF)/100</code></p><p><strong>Advertencia de interpretación:</strong> el documento original, en la <strong>página 101</strong>, escribe <code>Closs = Cstored × (100 − PF)</code> sin dividir entre 100, lo cual es dimensionalmente inconsistente (daría 100× Cstored). Aquí se implementa la división entre 100 porque PF está en escala porcentual. Verificado contra el PDF: la tabla de variables define PF con unidad %, de modo que se trata de un error editorial y la lectura con división entre 100 es la correcta.</p><p><strong>Fuente:</strong> " + FUENTE_PURO + " <span class='badge metodologia'>Metodología Puro.earth 2025 v2</span></p>" },
   "6.4": { t: "Ecuación 6.4 — Fracción de persistencia", h:
     "<p><code>PF = M − a × (H/Corg)</code></p><p>M y a provienen de la Tabla 6.1 según la temperatura del suelo de la región de primer uso (7–40 °C; fuera de rango se limita al extremo más cercano; mínimo 7 °C por decisión conservadora de la metodología). Temperatura del suelo del dataset derivado de Lembrechts et al. (2022), 5–15 cm.</p><p><strong>Fuente:</strong> " + FUENTE_PURO + " <span class='badge metodologia'>Metodología Puro.earth 2025 v2</span></p>" },
   "6.5": { t: "Ecuación 6.5 — Relación molar H/Corg", h:
@@ -1041,8 +1069,9 @@ const REFS = {
    =========================================================================== */
 
 function paramsPersistencia(tsCelsius) {
-  // Limitar al rango 7–40 °C (mínimo 7 °C por decisión conservadora de la metodología)
-  const ts = Math.min(40, Math.max(7, Math.round(tsCelsius)));
+  // Regla 6.2.4: la temperatura del suelo se redondea al entero SUPERIOR más cercano.
+  // Mínimo 7 °C por decisión conservadora; la Tabla 6.1 termina en 40 °C.
+  const ts = Math.min(40, Math.max(7, Math.ceil(tsCelsius)));
   return TABLA_6_1[ts];
 }
 
@@ -1105,7 +1134,7 @@ function selfTest() {
   const rend2 = interpolar(CURVAS.temps, CURVAS.rendimiento, 450);     // 29 %
   const hcorg2 = interpolar(CURVAS.temps, CURVAS.hcorg, 450);          // 0.48
   const biochar2 = madera2 * rend2 / 100;                              // 12,789 t
-  const cstored2 = calcCstored(biochar2, 0.867);                       // 40,656.231
+  const cstored2 = calcCstored(biochar2, 0.867 - 0.005);   // Ec. 6.2: Corg = Ctot − Cinorg                       // 40,656.231
   const pf2 = calcPF(hcorg2, 26);                                      // 68.8868
   const corcs2 = calcCORCs(cstored2, 0, calcCloss(cstored2, pf2), 0, 0); // 28,006.78
   const ingCarbono2 = corcs2 * 150;                                    // 4,201,016
@@ -1116,16 +1145,16 @@ function selfTest() {
     Math.abs(rend2 - 29) < 1e-9 &&
     Math.abs(hcorg2 - 0.48) < 1e-9 &&
     Math.abs(biochar2 - 12789) < 1e-6 &&
-    Math.abs(corcs2 - 28006.78) < 0.5 &&
-    Math.abs(ingCarbono2 - 4201016) < 75 &&
+    Math.abs(corcs2 - 27845.26) < 0.5 &&
+    Math.abs(ingCarbono2 - 4176789) < 75 &&
     Math.abs(ingProducto2 - 2557800) < 1e-3 &&
-    Math.abs(ingTotal2 - 6758816) < 75;
+    Math.abs(ingTotal2 - 6734589) < 75;
   console.assert(ok2, "FALLO caso 2 (Fortaleza)", { madera2, rend2, hcorg2, biochar2, corcs2, ingCarbono2, ingProducto2, ingTotal2 });
 
   // Caso 2b — peso verde con 50 % de humedad: todo se reduce exactamente a la mitad
   const maderaVerde = madera2 * (1 - 50 / 100);
   const biocharVerde = maderaVerde * rend2 / 100;
-  const cstoredVerde = calcCstored(biocharVerde, 0.867);
+  const cstoredVerde = calcCstored(biocharVerde, 0.867 - 0.005);   // Ec. 6.2
   const corcsVerde = calcCORCs(cstoredVerde, 0, calcCloss(cstoredVerde, pf2), 0, 0);
   const ok2b =
     Math.abs(maderaVerde - madera2 / 2) < 1e-9 &&
@@ -1136,7 +1165,7 @@ function selfTest() {
 
   const ok = ok1 && ok2 && ok2b;
   console.log(ok
-    ? "Auto-verificación PYRON: OK (Puro.earth 2.056399 tCO₂e · Fortaleza 28,007 CORCs y $6,758,816 · peso verde = mitad exacta)"
+    ? "Auto-verificación PYRON: OK (Puro.earth 2.056399 tCO₂e · Fortaleza 27,845 CORCs y $6,734,589 · peso verde = mitad exacta)"
     : "Auto-verificación PYRON: FALLO — revisar la cadena de cálculo");
   return ok;
 }
@@ -1408,7 +1437,7 @@ function renderBalance(certificable, pf, corcs, closs) {
     `<div style="width:${pf.toFixed(1)}%;background:var(--verde-medio)"></div>` +
     `<div style="width:${perdido.toFixed(1)}%;background:var(--dorado-claro)"></div>` +
     `</div>` +
-    `<div class="balance-leyenda">Del CO₂ almacenado: <strong style="color:var(--verde-oscuro)">${fmt(pf, 1)} % persiste ≥ 100 años</strong> (${fmt(corcs, 0)} CORCs) · ${fmt(perdido, 1)} % se descuenta como Closs (${fmt(closs, 0)} tCO₂e)</div>`;
+    `<div class="balance-leyenda">Del CO₂ almacenado (horizonte BC_TH200): <strong style="color:var(--verde-oscuro)">${fmt(pf, 1)} % persiste a 200 años</strong> (${fmt(corcs, 0)} CORCs) · ${fmt(perdido, 1)} % se descuenta como Closs (${fmt(closs, 0)} tCO₂e)</div>`;
 }
 
 /* ===========================================================================
@@ -1444,10 +1473,12 @@ function calcularEscenario(c) {
 
 /* Emisiones del proyecto por tonelada de biochar, desglosadas (Ec. 5.1) */
 function eprojectPorTonelada() {
-  const t = parseFloat($("inEprojTransporte").value) || 0;
-  const e = parseFloat($("inEprojEnergia").value) || 0;
-  const pr = parseFloat($("inEprojProceso").value) || 0;
-  return t + e + pr;
+  // Ec. 7.1 y 7.2: Eproject = Eops + Eemb, con Eops = Ebiomass + Eproduction + Euse
+  const eops = (parseFloat($("inEbiomass").value) || 0) +
+               (parseFloat($("inEproduction").value) || 0) +
+               (parseFloat($("inEuse").value) || 0);
+  const eemb = parseFloat($("inEemb").value) || 0;
+  return eops + eemb;
 }
 
 /* Configuración actual leída de la interfaz */
@@ -1463,7 +1494,9 @@ function cfgActual() {
     ts: parseFloat($("inTs").value) || PARAMS.ts_defecto.valor,
     precio: parseFloat($("inPrecio").value) || 0,
     precioProducto: parseFloat($("inPrecioProducto").value) || 0,
-    corg: Math.min(1, Math.max(0, parseFloat($("inCorg").value) || 0)),
+    ctot: Math.min(1, Math.max(0, parseFloat($("inCorg").value) || 0)),
+    cinorg: Math.max(0, parseFloat($("inCinorg").value) || 0),
+    corg: Math.max(0, Math.min(1, Math.max(0, parseFloat($("inCorg").value) || 0)) - Math.max(0, parseFloat($("inCinorg").value) || 0)),   // Ec. 6.2
     tPirolisis: parseFloat($("inTemp").value),
     pctLog: Math.min(100, Math.max(0, parseFloat($("inLogistica").value) || 0)),
     auditoria: parseFloat($("inAuditoria").value) || 0,
@@ -1669,6 +1702,7 @@ function recalc() {
   renderCadena([
     { nombre: etiquetaMadera, valor: fmt(maderaSeca, 1), unidad: "t", eq: "sup", eqLabel: unidad === "ha" ? "dato Fortaleza" : "entrada" },
     { nombre: "Biochar (Qbiochar) — × rendimiento " + fmt(rendimiento, 1) + " %", valor: fmt(qBiochar, 2), unidad: "t", eq: "rend", eqLabel: "curva supuesta" },
+    { nombre: "Corg — Ctot " + fmt(c.ctot, 3) + " − Cinorg " + fmt(c.cinorg, 3), valor: fmt(corg, 3), unidad: "fracción", eq: "6.2", eqLabel: "Ec. 6.2" },
     { nombre: "Cstored — × Corg " + fmt(corg, 3) + " × 44/12", valor: fmt(cstored, 2), unidad: "tCO₂e", eq: "6.1", eqLabel: "Ec. 6.1" },
     { nombre: "H/Corg a " + tPirolisis + " °C" + (certificable ? "" : " — NO CERTIFICABLE (≥ 0.70)"), valor: fmt(hcorg, 3), unidad: "molar", eq: "6.5", eqLabel: "Ec. 6.5" },
     { nombre: "Fracción de persistencia PF (Ts = " + Math.min(40, Math.max(7, Math.round(ts))) + " °C)", valor: certificable ? fmt(pf, 2) : "—", unidad: "%", eq: "6.4", eqLabel: "Ec. 6.4" },
@@ -1800,7 +1834,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("inBase").addEventListener("change", cambioBase);
   ["inCantidad","inArboles","inM3Arbol","inDensidad","inHumedad","inTs","inPrecio",
    "inPrecioProducto","inCorg","inTemp","inLogistica","inAuditoria","inUmbral","inDosis",
-   "inEprojTransporte","inEprojEnergia","inEprojProceso",
+   "inEbiomass","inEproduction","inEuse","inEemb","inCinorg",
    "inPAserrada","inPLena","inPCarbon","inMesesPago","inHaAnio","inAnios"]
     .forEach(id => $(id).addEventListener("input", recalc));
   poblarSelectCorridas();
