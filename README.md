@@ -23,7 +23,7 @@ Refinería de madera de hule: biochar, créditos de carbono (CORCs, Puro.earth B
 - **Flujo de caja acumulado** 2027 a 2037 y **sensibilidad del VAN** con valores fijos del modelo. No se recalculan en la página.
 - **Planta:** BST-50S de 20,800 t al año. 35,280 t requieren 2 unidades al 85 %.
 - **Extras:** modo presentación (tecla P), enlace compartible con el estado en la URL, impresión o PDF.
-- **Selector de especie:** hule (modelo completo), limón (corrida 3, 27.7 %, Corg preliminar 0.75) y canoj, macadamia, café, mangostán, palma y teca con rendimiento pendiente: la página no inventa valores y pide escribirlos para estimar. Se quitaron eucalipto, pino, melina y mango.
+- **Selector de especie:** hule (modelo completo), limón (corrida 3, 27.7 %, Corg preliminar 0.75) y canoj, macadamia, café, mangostán, palma y teca, que todavía no tienen corrida y usan el rendimiento y el Corg del hule como referencia (editables). Se quitaron eucalipto, pino, melina y mango.
 - Se quitaron las equivalencias.
 
 ## Pruebas

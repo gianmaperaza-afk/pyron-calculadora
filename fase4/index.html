@@ -163,8 +163,6 @@
   .aviso { border-left: 4px solid var(--corcs); background: #F7EBD6; padding: .7rem .95rem; border-radius: 0 10px 10px 0; font-size: .88rem; margin-top: .9rem; }
   #bannerNC { display: none; margin-bottom: 1rem; padding: .9rem 1.2rem; background: var(--rojo); color: #fff; border-radius: 12px; font-weight: 700; text-align: center; }
   body.no-certificable #bannerNC { display: block; }
-  #bannerPend { display: none; margin-bottom: 1rem; padding: .9rem 1.2rem; background: var(--corcs); color: #fff; border-radius: 12px; font-weight: 700; text-align: center; }
-  body.pendiente #bannerPend { display: block; }
   #inTemp:disabled { opacity: .35; }
   .tarjeta-especie { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
   .tarjeta-especie label { font: 600 1.05rem var(--serif); }
@@ -264,11 +262,10 @@
 <div class="tarjeta-especie">
   <label for="selEspecie">Especie</label>
   <select id="selEspecie"></select>
-  <button type="button" class="info-btn" data-tip="El modelo financiero es del hule. Limón tiene una corrida propia (27.7 %); su Corg es una estimación preliminar. Las demás especies no tienen corrida todavía: escribí un rendimiento y un Corg para estimar.">i</button>
+  <button type="button" class="info-btn" data-tip="El modelo financiero es del hule. Limón tiene una corrida propia (27.7 %); su Corg es una estimación preliminar. Las demás especies no tienen corrida todavía: usan el rendimiento y el Corg del hule como referencia, y se pueden editar en la sección 1.">i</button>
   <span class="nota" id="notaEspecie"></span>
 </div>
 
-<div id="bannerPend"></div>
 <div id="bannerNC">No certificable: H/Corg igual o mayor a 0.70, fuera del umbral de la metodología</div>
 
 <section class="hero" aria-label="Resultado">
@@ -616,13 +613,13 @@ const CORRIDAS = [
   { id: "2", especie: "Hule", r: PARAMS.rend_c2.valor, temp: "250 a 400 °C", dur: "7 h 10 min" },
   { id: "3", especie: "Limón", r: PARAMS.rend_c3.valor, temp: "250 a 400 °C", dur: "6 h 50 min" }
 ];
-const ESPECIES_PENDIENTES = ["Canoj", "Macadamia", "Café", "Mangostán", "Palma", "Teca"];
+const ESPECIES_SIN_CORRIDA = ["Canoj", "Macadamia", "Café", "Mangostán", "Palma", "Teca"];
 
-/* Especies del selector. null = pendiente: sin corrida propia ni Corg con fuente. */
+/* Especies del selector. Las que no tienen corrida propia usan el rendimiento y el Corg del hule como referencia (ref: true). */
 const ESPECIES = [
   { id: "hule", nombre: "Hule (Hevea brasiliensis)", corto: "hule", rend: PARAMS.rendimiento.valor, corg: PARAMS.corg.valor, curva: true },
   { id: "limon", nombre: "Limón", corto: "limón", rend: PARAMS.rend_c3.valor, corg: PARAMS.corg_limon.valor, curva: false }
-].concat(ESPECIES_PENDIENTES.map(n => ({ id: n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), nombre: n, corto: n.toLowerCase(), rend: null, corg: null, curva: false })));
+].concat(ESPECIES_SIN_CORRIDA.map(n => ({ id: n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), nombre: n, corto: n.toLowerCase(), rend: PARAMS.rendimiento.valor, corg: PARAMS.corg.valor, curva: false, ref: true })));
 const especieActual = () => ESPECIES.find(e => e.id === $("selEspecie").value) || ESPECIES[0];
 
 /* Escenarios: valores de entrada de la tabla de rangos y resultados oficiales fijos */
@@ -839,9 +836,6 @@ function renderRefineria(r, c) {
   });
   $("refD0").textContent = nf(r.biochar, 0) + " t × " + usd(c.pb) + " por t";
   $("refD1").textContent = nf(r.corcs, 0) + " CORCs × " + usd(c.pc);
-  if (document.body.classList.contains("pendiente")) {
-    [0, 1].forEach(i => { $("refV" + i).textContent = "Pendiente"; $("refD" + i).textContent = "falta el rendimiento de la especie"; });
-  }
   $("refD2").textContent = nf(r.litros, 0) + " L × USD " + nf(c.pl, 2);
   const pct = v => r.total > 0 ? Math.round(v / r.total * 100) : 0;
   $("outMezcla").innerHTML =
@@ -1026,7 +1020,7 @@ function renderTornado() {
 function construirCorridas() {
   $("tbodyCorridas").innerHTML = CORRIDAS.map(c =>
     "<tr><td>" + c.id + "</td><td>" + c.especie + '</td><td class="num">' + nf(c.r, 1) + " %</td><td>" + c.temp + "</td><td>" + c.dur + "</td></tr>").join("") +
-    ESPECIES_PENDIENTES.map(e => '<tr style="color:var(--gris-texto)"><td>—</td><td>' + e + '</td><td class="num">pendiente</td><td>—</td><td>—</td></tr>').join("");
+    ESPECIES_SIN_CORRIDA.map(e => '<tr style="color:var(--gris-texto)"><td>—</td><td>' + e + '</td><td class="num">sin corrida</td><td>—</td><td>—</td></tr>').join("");
 }
 
 function construirFuentes() {
@@ -1045,33 +1039,27 @@ function recalc() {
   const c = leer();
   const r = calcular(c);
   const esp = especieActual();
-  const pendiente = !isFinite(parseFloat($("inRend").value)) || !isFinite(parseFloat($("inCorg").value));
-  document.body.classList.toggle("pendiente", pendiente);
-  document.body.classList.toggle("no-certificable", !pendiente && !r.certificable);
-  $("bannerPend").textContent = "Rendimiento pendiente para " + esp.corto + ": escribí un rendimiento y un Corg en la sección 1 para estimar.";
+  document.body.classList.toggle("no-certificable", !r.certificable);
   $("notaEspecie").textContent = esp.id === "hule" ? "Datos de campo y modelo financiero del hule."
-    : esp.rend !== null ? "Rendimiento de la corrida 3 (" + nf(esp.rend, 1) + " %). Corg preliminar. Árboles, madera por árbol, densidad y leña son datos del hule: reemplazalos con los de la especie."
-    : "Sin corrida todavía. Árboles, madera por árbol, densidad y leña son datos del hule.";
+    : !esp.ref ? "Rendimiento de la corrida 3 (" + nf(esp.rend, 1) + " %). Corg preliminar. Árboles, madera por árbol, densidad y leña son datos del hule: reemplazalos con los de la especie."
+    : "Sin corrida propia todavía: usa el rendimiento, el Corg y los datos de campo del hule como referencia.";
 
-  if (pendiente) {
-    ["outTotal", "outEbitda"].forEach(id => { $(id).textContent = "Pendiente"; previos[id] = undefined; });
-  } else
   animar("outTotal", r.total, v => usd(v, 1));
   $("outTotalNota").textContent = nf(c.ha, 0) + " ha al año · " + nf(r.madera, 0) + " t de madera seca · precios del año 1";
-  if (!pendiente) animar("outEbitda", r.ebitda, v => usd(v, 2));
-  $("outMargen").textContent = pendiente ? "Falta el rendimiento de la especie" : "Margen " + nf(r.margen * 100, 0) + " % · costo de " + usd(r.costoT) + " por t de biochar";
-  $("outCorcsT").textContent = pendiente ? "—" : nf(r.corcsT, 2);
-  $("outCorcsT2").textContent = pendiente ? "—" : nf(r.corcsT, 2);
+  animar("outEbitda", r.ebitda, v => usd(v, 2));
+  $("outMargen").textContent = "Margen " + nf(r.margen * 100, 0) + " % · costo de " + usd(r.costoT) + " por t de biochar";
+  $("outCorcsT").textContent = nf(r.corcsT, 2);
+  $("outCorcsT2").textContent = nf(r.corcsT, 2);
 
   const h = calcular({ ...c, ha: 1 });
-  $("outVeces").textContent = pendiente ? "—" : nf(h.veces, 0) + "x";
+  $("outVeces").textContent = nf(h.veces, 0) + "x";
   $("outLena").innerHTML = (esp.id !== "hule" ? "Con datos de campo del hule. " : "") + "Una hectárea en la refinería deja <strong>" + usd(h.total) + "</strong>. La misma madera vendida como leña deja <strong>" +
     usd(h.lenaHa) + "</strong> (USD " + nf(PARAMS.lena_arbol.valor, 2) + " por árbol). Por hectárea: " + nf(h.biochar, 0) + " t de biochar, " +
     nf(h.corcs, 0) + " CORCs y " + nf(h.litros, 0) + " L de bioestimulante.";
 
   renderRefineria(r, c);
   renderCurva(num("inTemp", 500), c.rend);
-  if (!esp.curva) $("outRendNota").textContent = "La curva es del hule; el deslizador solo funciona con hule. Rendimiento en uso para " + esp.corto + ": " + (pendiente ? "pendiente." : nf(c.rend, 1) + " %.");
+  if (!esp.curva) $("outRendNota").textContent = "La curva es del hule; el deslizador solo funciona con hule. Rendimiento en uso para " + esp.corto + ": " + nf(c.rend, 1) + " %" + (esp.ref ? ", el del hule como referencia." : ".");
   renderCadena(r, c);
   renderBio(r, c);
   renderPrecios(c);
@@ -1101,8 +1089,8 @@ function aplicarEscenario(clave) {
 
 function cambioEspecie() {
   const e = especieActual();
-  $("inRend").value = e.rend === null ? "" : e.rend;
-  $("inCorg").value = e.corg === null ? "" : e.corg;
+  $("inRend").value = e.rend;
+  $("inCorg").value = e.corg;
   $("inTemp").disabled = !e.curva;
   $("inTemp").value = 500;
   recalc();
@@ -1182,7 +1170,7 @@ function iniciarTooltips() {
 
 /* ----- Inicio ----- */
 document.addEventListener("DOMContentLoaded", () => {
-  $("selEspecie").innerHTML = ESPECIES.map(e => '<option value="' + e.id + '">' + e.nombre + (e.rend === null ? " · rendimiento pendiente" : "") + "</option>").join("");
+  $("selEspecie").innerHTML = ESPECIES.map(e => '<option value="' + e.id + '">' + e.nombre + "</option>").join("");
   $("selEspecie").addEventListener("change", cambioEspecie);
   $("selDestino").innerHTML = DESTINOS.map(d => '<option value="' + d.id + '">' + d.nombre + "</option>").join("");
   construirRefineria(); construirCorridas(); construirFuentes(); renderFlujo(); renderTornado(); iniciarTooltips();
