@@ -163,6 +163,12 @@
   .aviso { border-left: 4px solid var(--corcs); background: #F7EBD6; padding: .7rem .95rem; border-radius: 0 10px 10px 0; font-size: .88rem; margin-top: .9rem; }
   #bannerNC { display: none; margin-bottom: 1rem; padding: .9rem 1.2rem; background: var(--rojo); color: #fff; border-radius: 12px; font-weight: 700; text-align: center; }
   body.no-certificable #bannerNC { display: block; }
+  #bannerPend { display: none; margin-bottom: 1rem; padding: .9rem 1.2rem; background: var(--corcs); color: #fff; border-radius: 12px; font-weight: 700; text-align: center; }
+  body.pendiente #bannerPend { display: block; }
+  #inTemp:disabled { opacity: .35; }
+  .tarjeta-especie { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .tarjeta-especie label { font: 600 1.05rem var(--serif); }
+  .tarjeta-especie select { font: 600 1rem var(--sans); color: var(--verde-oscuro); background: #fff; border: 1px solid var(--borde); border-radius: 999px; padding: .5rem 1rem; min-width: 260px; }
 
   .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
   svg.grafico { width: 100%; height: auto; display: block; }
@@ -255,6 +261,14 @@
   </div>
 </div>
 
+<div class="tarjeta-especie">
+  <label for="selEspecie">Especie</label>
+  <select id="selEspecie"></select>
+  <button type="button" class="info-btn" data-tip="El modelo financiero es del hule. Limón tiene una corrida propia (27.7 %); su Corg es una estimación preliminar. Las demás especies no tienen corrida todavía: escribí un rendimiento y un Corg para estimar.">i</button>
+  <span class="nota" id="notaEspecie"></span>
+</div>
+
+<div id="bannerPend"></div>
 <div id="bannerNC">No certificable: H/Corg igual o mayor a 0.70, fuera del umbral de la metodología</div>
 
 <section class="hero" aria-label="Resultado">
@@ -535,6 +549,7 @@ const PARAMS = {
   rend_c1:      P(33.4, "%", "medicion_propia", "Rendimiento, corrida 1 (hule, 250 a 380 °C)", "Corridas de laboratorio de PYRON."),
   rend_c2:      P(32.5, "%", "medicion_propia", "Rendimiento, corrida 2 (hule, 250 a 400 °C)", "Corridas de laboratorio de PYRON."),
   rend_c3:      P(27.7, "%", "medicion_propia", "Rendimiento, corrida 3 (limón, 250 a 400 °C)", "Corridas de laboratorio de PYRON."),
+  corg_limon:   P(0.75, "fracción", "supuesto", "Corg del biochar de limón", "Estimación preliminar de la Fase 3, sin caracterización publicada. Pendiente de análisis en un laboratorio externo."),
   precio_biochar: P(250, "USD/t", "supuesto", "Precio del biochar, en planta (EXW)", MODELO + " Rango 200 a 300."),
   precio_corc:  P(150, "USD/tCO₂e", "supuesto", "Precio del CORC", MODELO + " Rango 120 a 185."),
   precio_bio:   P(15.38, "USD/L", "supuesto", "Precio del bioestimulante", MODELO + " Rango 14.42 a 16.35. Venta en Guatemala, envasado y con registro MAGA. El bioestimulante es aceite piroleñoso: el vapor de la pirólisis condensado y reposado."),
@@ -602,6 +617,13 @@ const CORRIDAS = [
   { id: "3", especie: "Limón", r: PARAMS.rend_c3.valor, temp: "250 a 400 °C", dur: "6 h 50 min" }
 ];
 const ESPECIES_PENDIENTES = ["Canoj", "Macadamia", "Café", "Mangostán", "Palma", "Teca"];
+
+/* Especies del selector. null = pendiente: sin corrida propia ni Corg con fuente. */
+const ESPECIES = [
+  { id: "hule", nombre: "Hule (Hevea brasiliensis)", corto: "hule", rend: PARAMS.rendimiento.valor, corg: PARAMS.corg.valor, curva: true },
+  { id: "limon", nombre: "Limón", corto: "limón", rend: PARAMS.rend_c3.valor, corg: PARAMS.corg_limon.valor, curva: false }
+].concat(ESPECIES_PENDIENTES.map(n => ({ id: n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), nombre: n, corto: n.toLowerCase(), rend: null, corg: null, curva: false })));
+const especieActual = () => ESPECIES.find(e => e.id === $("selEspecie").value) || ESPECIES[0];
 
 /* Escenarios: valores de entrada de la tabla de rangos y resultados oficiales fijos */
 const ESCENARIOS = {
@@ -782,7 +804,7 @@ const RAMAS = [
 ];
 function construirRefineria() {
   let s = '<rect x="18" y="116" width="158" height="88" rx="14" fill="#FBF8F1" stroke="#E2D8C4"/>' +
-    '<text x="97" y="150" text-anchor="middle" font-size="15" font-weight="700" fill="#1D3B2C">Madera seca</text>' +
+    '<text id="refEspecie" x="97" y="150" text-anchor="middle" font-size="15" font-weight="700" fill="#1D3B2C">Madera seca</text>' +
     '<text id="refMadera" x="97" y="178" text-anchor="middle" font-size="14" fill="#6B6F64">—</text>' +
     '<path id="refTronco" class="rama" d="M176 160 L 330 160" style="stroke:#D9C9A8" stroke-width="96"/>';
   RAMAS.forEach(r => {
@@ -803,6 +825,7 @@ function renderRefineria(r, c) {
   const activos = [true, c.cred, c.bio];
   const MAX = 96;
   $("refMadera").textContent = nf(r.madera, 0) + " t";
+  $("refEspecie").textContent = "Madera de " + especieActual().corto;
   $("refTemp").textContent = nf(num("inTemp", 500), 0) + " °C";
   $("refTronco").setAttribute("stroke-width", r.total > 0 ? MAX : 0);
   const anchos = vals.map((v, i) => r.total > 0 ? Math.max(activos[i] && v > 0 ? 3 : 0, MAX * v / r.total) : 0);
@@ -816,6 +839,9 @@ function renderRefineria(r, c) {
   });
   $("refD0").textContent = nf(r.biochar, 0) + " t × " + usd(c.pb) + " por t";
   $("refD1").textContent = nf(r.corcs, 0) + " CORCs × " + usd(c.pc);
+  if (document.body.classList.contains("pendiente")) {
+    [0, 1].forEach(i => { $("refV" + i).textContent = "Pendiente"; $("refD" + i).textContent = "falta el rendimiento de la especie"; });
+  }
   $("refD2").textContent = nf(r.litros, 0) + " L × USD " + nf(c.pl, 2);
   const pct = v => r.total > 0 ? Math.round(v / r.total * 100) : 0;
   $("outMezcla").innerHTML =
@@ -1018,23 +1044,34 @@ function construirFuentes() {
 function recalc() {
   const c = leer();
   const r = calcular(c);
-  document.body.classList.toggle("no-certificable", !r.certificable);
+  const esp = especieActual();
+  const pendiente = !isFinite(parseFloat($("inRend").value)) || !isFinite(parseFloat($("inCorg").value));
+  document.body.classList.toggle("pendiente", pendiente);
+  document.body.classList.toggle("no-certificable", !pendiente && !r.certificable);
+  $("bannerPend").textContent = "Rendimiento pendiente para " + esp.corto + ": escribí un rendimiento y un Corg en la sección 1 para estimar.";
+  $("notaEspecie").textContent = esp.id === "hule" ? "Datos de campo y modelo financiero del hule."
+    : esp.rend !== null ? "Rendimiento de la corrida 3 (" + nf(esp.rend, 1) + " %). Corg preliminar. Árboles, madera por árbol, densidad y leña son datos del hule: reemplazalos con los de la especie."
+    : "Sin corrida todavía. Árboles, madera por árbol, densidad y leña son datos del hule.";
 
+  if (pendiente) {
+    ["outTotal", "outEbitda"].forEach(id => { $(id).textContent = "Pendiente"; previos[id] = undefined; });
+  } else
   animar("outTotal", r.total, v => usd(v, 1));
   $("outTotalNota").textContent = nf(c.ha, 0) + " ha al año · " + nf(r.madera, 0) + " t de madera seca · precios del año 1";
-  animar("outEbitda", r.ebitda, v => usd(v, 2));
-  $("outMargen").textContent = "Margen " + nf(r.margen * 100, 0) + " % · costo de " + usd(r.costoT) + " por t de biochar";
-  $("outCorcsT").textContent = nf(r.corcsT, 2);
-  $("outCorcsT2").textContent = nf(r.corcsT, 2);
+  if (!pendiente) animar("outEbitda", r.ebitda, v => usd(v, 2));
+  $("outMargen").textContent = pendiente ? "Falta el rendimiento de la especie" : "Margen " + nf(r.margen * 100, 0) + " % · costo de " + usd(r.costoT) + " por t de biochar";
+  $("outCorcsT").textContent = pendiente ? "—" : nf(r.corcsT, 2);
+  $("outCorcsT2").textContent = pendiente ? "—" : nf(r.corcsT, 2);
 
   const h = calcular({ ...c, ha: 1 });
-  $("outVeces").textContent = nf(h.veces, 0) + "x";
-  $("outLena").innerHTML = "Una hectárea en la refinería deja <strong>" + usd(h.total) + "</strong>. La misma madera vendida como leña deja <strong>" +
+  $("outVeces").textContent = pendiente ? "—" : nf(h.veces, 0) + "x";
+  $("outLena").innerHTML = (esp.id !== "hule" ? "Con datos de campo del hule. " : "") + "Una hectárea en la refinería deja <strong>" + usd(h.total) + "</strong>. La misma madera vendida como leña deja <strong>" +
     usd(h.lenaHa) + "</strong> (USD " + nf(PARAMS.lena_arbol.valor, 2) + " por árbol). Por hectárea: " + nf(h.biochar, 0) + " t de biochar, " +
     nf(h.corcs, 0) + " CORCs y " + nf(h.litros, 0) + " L de bioestimulante.";
 
   renderRefineria(r, c);
   renderCurva(num("inTemp", 500), c.rend);
+  if (!esp.curva) $("outRendNota").textContent = "La curva es del hule; el deslizador solo funciona con hule. Rendimiento en uso para " + esp.corto + ": " + (pendiente ? "pendiente." : nf(c.rend, 1) + " %.");
   renderCadena(r, c);
   renderBio(r, c);
   renderPrecios(c);
@@ -1042,6 +1079,7 @@ function recalc() {
   renderPlanta(r);
   if (!aplicando && escActivo && !modificado) { modificado = true; }
   renderFinanciero();
+  document.querySelectorAll(".segmentado button").forEach(b => b.setAttribute("aria-pressed", !modificado && b.dataset.esc === escActivo ? "true" : "false"));
   guardarHash();
 }
 
@@ -1049,6 +1087,7 @@ function recalc() {
 function aplicarEscenario(clave) {
   const v = ESCENARIOS[clave].valores;
   aplicando = true;
+  $("selEspecie").value = "hule"; $("inTemp").disabled = false;
   $("inCorg").value = v.corg; $("inRend").value = v.rend; $("inPb").value = v.pb; $("inPc").value = v.pc; $("inPl").value = v.pl;
   $("chkCred").checked = v.cred; $("chkBio").checked = v.bio;
   $("inHcorg").value = 0.46; $("inTemp").value = 500;
@@ -1060,6 +1099,15 @@ function aplicarEscenario(clave) {
   aplicando = false;
 }
 
+function cambioEspecie() {
+  const e = especieActual();
+  $("inRend").value = e.rend === null ? "" : e.rend;
+  $("inCorg").value = e.corg === null ? "" : e.corg;
+  $("inTemp").disabled = !e.curva;
+  $("inTemp").value = 500;
+  recalc();
+}
+
 /* ----- Enlace compartible: solo valores de la pantalla en el hash ----- */
 const CAMPOS_HASH = { ha: "inHa", arb: "inArboles", m3: "inM3", den: "inDens", rend: "inRend", temp: "inTemp", corg: "inCorg",
                       hc: "inHcorg", ts: "inTs", pb: "inPb", pc: "inPc", pl: "inPl", cond: "inCond" };
@@ -1067,6 +1115,7 @@ function guardarHash() {
   const q = new URLSearchParams();
   Object.entries(CAMPOS_HASH).forEach(([k, id]) => q.set(k, $(id).value));
   q.set("dest", $("selDestino").value);
+  q.set("esp", $("selEspecie").value);
   q.set("cred", $("chkCred").checked ? 1 : 0);
   q.set("bio", $("chkBio").checked ? 1 : 0);
   q.set("esc", modificado ? "" : escActivo);
@@ -1075,7 +1124,14 @@ function guardarHash() {
 function leerHash() {
   if (!location.hash || location.hash.length < 2) return false;
   const q = new URLSearchParams(location.hash.slice(1));
-  Object.entries(CAMPOS_HASH).forEach(([k, id]) => { if (q.has(k) && q.get(k) !== "" && isFinite(parseFloat(q.get(k)))) $(id).value = q.get(k); });
+  if (q.has("esp") && ESPECIES.some(e => e.id === q.get("esp"))) $("selEspecie").value = q.get("esp");
+  $("inTemp").disabled = !especieActual().curva;
+  Object.entries(CAMPOS_HASH).forEach(([k, id]) => {
+    if (!q.has(k)) return;
+    const v = q.get(k);
+    if (v === "" && (k === "rend" || k === "corg")) $(id).value = "";
+    else if (v !== "" && isFinite(parseFloat(v))) $(id).value = v;
+  });
   if (q.has("dest") && DESTINOS.some(d => d.id === q.get("dest"))) $("selDestino").value = q.get("dest");
   if (q.has("ts")) destinoActual().ts = parseFloat($("inTs").value);
   if (q.has("cred")) $("chkCred").checked = q.get("cred") === "1";
@@ -1126,6 +1182,8 @@ function iniciarTooltips() {
 
 /* ----- Inicio ----- */
 document.addEventListener("DOMContentLoaded", () => {
+  $("selEspecie").innerHTML = ESPECIES.map(e => '<option value="' + e.id + '">' + e.nombre + (e.rend === null ? " · rendimiento pendiente" : "") + "</option>").join("");
+  $("selEspecie").addEventListener("change", cambioEspecie);
   $("selDestino").innerHTML = DESTINOS.map(d => '<option value="' + d.id + '">' + d.nombre + "</option>").join("");
   construirRefineria(); construirCorridas(); construirFuentes(); renderFlujo(); renderTornado(); iniciarTooltips();
 
