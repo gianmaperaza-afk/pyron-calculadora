@@ -114,6 +114,15 @@
   .mezcla { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: .88rem; margin-top: .4rem; }
   .punto { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .35rem; vertical-align: -.05rem; }
 
+  /* Equivalencias */
+  .equivalencias { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: .8rem; }
+  .equi { background: #fff; border: 1px solid var(--borde); border-radius: 12px; padding: 1rem 1.2rem; text-align: center; }
+  .equi .v { font-family: var(--serif); font-size: 2.2rem; font-weight: 700; color: var(--biochar); font-variant-numeric: tabular-nums; }
+  .equi .k { font-size: .85rem; color: var(--gris-texto); }
+  body.presentacion .equi .v { font-size: 3rem; }
+  body.presentacion .equi .k, body.presentacion #outEqIntro { font-size: 1.15rem; }
+  @media (max-width: 820px) { .equivalencias { grid-template-columns: 1fr; } }
+
   /* Contador contra la leña */
   .lena { display: flex; align-items: center; gap: 1.6rem; flex-wrap: wrap; }
   .veces { font-family: var(--serif); font-weight: 700; font-size: 4.2rem; line-height: 1; color: var(--biochar); font-variant-numeric: tabular-nums; }
@@ -290,6 +299,16 @@
   <h3>La refinería</h3>
   <svg id="svgRefineria" viewBox="0 0 900 320" role="img" aria-label="Flujo de la madera hacia biochar, créditos de carbono y bioestimulante"></svg>
   <div class="mezcla" id="outMezcla"></div>
+</section>
+
+<section class="tarjeta" aria-label="Equivalencias" style="margin-top:1rem">
+  <h3>Lo que significa para el clima</h3>
+  <p id="outEqIntro" style="font-size:.95rem">—</p>
+  <div class="equivalencias">
+    <div class="equi"><div class="v" id="outEqAutos">—</div><div class="k">automóviles fuera de circulación un año <button type="button" class="info-btn" data-tip="Factor: 4.6 tCO₂e por automóvil al año. Estimación preliminar; referencia sugerida: EPA Greenhouse Gas Equivalencies Calculator.">i</button></div></div>
+    <div class="equi"><div class="v" id="outEqArboles">—</div><div class="k">árboles creciendo 10 años <button type="button" class="info-btn" data-tip="Factor: 0.06 tCO₂e por árbol en 10 años de crecimiento. Estimación preliminar.">i</button></div></div>
+    <div class="equi"><div class="v" id="outEqVuelos">—</div><div class="k">vuelos de ida y vuelta Guatemala–Madrid por pasajero <button type="button" class="info-btn" data-tip="Factor: 2.0 tCO₂e por pasajero por vuelo de ida y vuelta. Estimación preliminar.">i</button></div></div>
+  </div>
 </section>
 
 <section class="tarjeta lena" aria-label="Comparación con la leña" style="margin-top:1rem">
@@ -564,6 +583,9 @@ const PARAMS = {
   cap_hora:     P(3.2, "t madera seca/h", "supuesto", "Capacidad de una unidad BST-50S", MODELO),
   horas:        P(6500, "h/año", "supuesto", "Horas de operación al año", MODELO),
   costo_unidad: P(910000, "USD", "supuesto", "Costo instalado por unidad", MODELO + " Precio bajo de referencia: USD 850 mil."),
+  eq_auto:      P(4.6, "tCO₂e/auto·año", "supuesto", "Equivalencia: emisiones anuales de un automóvil", "Estimación preliminar de la Fase 3. Referencia sugerida: EPA Greenhouse Gas Equivalencies Calculator."),
+  eq_arbol:     P(0.06, "tCO₂e/árbol·10 años", "supuesto", "Equivalencia: árbol creciendo 10 años", "Estimación preliminar de la Fase 3."),
+  eq_vuelo:     P(2.0, "tCO₂e/pasajero·vuelo i/v", "supuesto", "Equivalencia: vuelo de ida y vuelta Guatemala–Madrid", "Estimación preliminar de la Fase 3."),
   tasa:         P(0.12, "fracción", "supuesto", "Tasa de descuento", MODELO),
   fcff:         P("2027 a 2037", "USD", "supuesto", "Flujo de caja libre anual, escenario base", MODELO + " Descontado al 12 % con 2027 como año 0 da USD 12,840,410."),
   resultados:   P("4 escenarios", "—", "supuesto", "Escenarios y sensibilidad del VAN", MODELO + " Valores fijos: la calculadora no los recalcula.")
@@ -1058,6 +1080,10 @@ function recalc() {
     nf(h.corcs, 0) + " CORCs y " + nf(h.litros, 0) + " L de bioestimulante.";
 
   renderRefineria(r, c);
+  $("outEqIntro").innerHTML = "Con estos números, la refinería remueve <strong>" + nf(r.corcs, 0) + " t de CO₂e</strong> al año, ya descontadas la permanencia y las emisiones del proyecto. Equivale a:";
+  animar("outEqAutos", r.corcs / PARAMS.eq_auto.valor, v => nf(v, 0));
+  animar("outEqArboles", r.corcs / PARAMS.eq_arbol.valor, v => nf(v, 0));
+  animar("outEqVuelos", r.corcs / PARAMS.eq_vuelo.valor, v => nf(v, 0));
   renderCurva(num("inTemp", 500), c.rend);
   if (!esp.curva) $("outRendNota").textContent = "La curva es del hule; el deslizador solo funciona con hule. Rendimiento en uso para " + esp.corto + ": " + nf(c.rend, 1) + " %" + (esp.ref ? ", el del hule como referencia." : ".");
   renderCadena(r, c);
