@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora PYRON</title>
+<!--
+  ============================================================================
+  PYRON — Calculadora de la refinería de madera de hule · Fase 4
+  Biochar, créditos de carbono (CORCs) y bioestimulante.
+
+  Archivo autocontenido: sin servidor, sin build, sin CDNs, sin librerías,
+  sin fuentes externas y sin localStorage. El estado de la pantalla se guarda
+  solo en el hash de la URL, para compartir escenarios.
+
+  REGLA DE DATOS: ningún parámetro numérico existe sin procedencia. Ver PARAMS.
+  Tipos: metodologia | paper | medicion_propia | dato_empresa | supuesto.
+
+  PRUEBAS (también en correrPruebas(), que se puede llamar desde la consola).
+  Tolerancia: 1 %.
+
+  1. Caso Fase 3: Qbiochar 1 t, Corg 0.80, H/Corg 0.45, Ts 26 °C.
+     Cstored 2.933333 · PF 70.1045 % · Closs 0.876935
+     Resultado antes de Eproject: 2.0564 tCO2e
+  2. Créditos por tonelada, Fase 4: Corg 0.867, H/Corg 0.46, Ts 26 °C,
+     Eproject 0.32016 t.
+     Cstored 3.1790 · PF 69.70 % (Ec. 6.4) · Closs 0.9633
+     CORCs = 3.1790 − 0.9633 − 0.3202 = 1.8956 por t de biochar
+     Referencia: con PF fijo en 70 %, como redondea el modelo, 1.9051.
+  3. Hectárea, 352.8 t de madera seca: unas 106 t de biochar, 202 CORCs,
+     1,111 L de bioestimulante, cerca de USD 73,800; unas 19 veces la leña.
+  4. Operación, 35,280 t: 10,584 t de biochar, unos 20,164 CORCs,
+     111,132 L y unos USD 7.4M.
+  5. Planta: 35,280 t entre 20,800 t por unidad = 2 unidades al 85 %.
+  Además: Eproject suma 320.16 kg; bioestimulante 3.15 L por t de madera;
+  el FCFF del modelo descontado al 12 % da USD 12,840,410.
+  ============================================================================
+-->
+<style>
+  :root {
+    --crema: #F6F1E6;
+    --tarjeta: #FBF8F1;
+    --borde: #E2D8C4;
+    --verde-oscuro: #1D3B2C;
+    --dorado: #E0B25A;
+    --ocre: #8A5A12;
+    --gris-texto: #6B6F64;
+    --biochar: #1F7A4D;
+    --corcs: #B8791F;
+    --bioestim: #4F7FC4;
+    --rojo: #9B2226;
+    --naranja: #C1652F;
+    --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 17px; }
+  body {
+    background: var(--crema); color: var(--verde-oscuro);
+    font-family: var(--sans); line-height: 1.5; padding-bottom: 4rem;
+    transition: background .4s ease;
+  }
+  body.no-certificable { background: #F8EDE8; }
+  .anillos { position: fixed; top: 0; right: 0; width: 260px; height: 260px; pointer-events: none; z-index: 0; }
+  main { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; padding: 2.2rem 1.25rem 0; }
+
+  header.cabecera { margin-bottom: 1.4rem; }
+  h1 { font-family: var(--serif); font-weight: 600; letter-spacing: .14em; font-size: 2.6rem; }
+  .subtitulo { font-family: var(--serif); color: var(--ocre); font-size: 1.15rem; margin-top: .15rem; }
+
+  h2 {
+    font-family: var(--serif); font-size: 1.45rem; font-weight: 600;
+    border-bottom: 2px solid var(--borde); padding-bottom: .35rem; margin-bottom: 1rem;
+    text-wrap: balance;
+  }
+  h3 { font-family: var(--serif); font-size: 1.1rem; font-weight: 600; margin-bottom: .55rem; }
+  section { margin-bottom: 2.4rem; }
+  .tarjeta { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 14px; padding: 1.3rem 1.4rem; }
+  .nota { font-size: .82rem; color: var(--gris-texto); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Barra superior: escenarios y acciones */
+  .barra { display: flex; justify-content: space-between; align-items: center; gap: .8rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+  .segmentado { display: inline-flex; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 999px; padding: 3px; flex-wrap: wrap; }
+  .segmentado button {
+    font: 600 .88rem var(--sans); color: var(--verde-oscuro); background: transparent; border: 0;
+    padding: .45rem 1rem; border-radius: 999px; cursor: pointer;
+  }
+  .segmentado button[aria-pressed="true"] { background: var(--verde-oscuro); color: #fff; }
+  .segmentado button:focus-visible, .boton:focus-visible { outline: 2px solid var(--ocre); outline-offset: 2px; }
+  .acciones { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .boton {
+    font: 600 .85rem var(--sans); background: var(--tarjeta); color: var(--verde-oscuro);
+    border: 1px solid var(--borde); padding: .45rem .9rem; border-radius: 999px; cursor: pointer;
+  }
+  .boton:hover { border-color: var(--ocre); }
+  .boton.primario { background: var(--verde-oscuro); color: #fff; border-color: var(--verde-oscuro); }
+  kbd { font: 600 .72rem var(--sans); border: 1px solid currentColor; border-radius: 4px; padding: 0 .3em; margin-left: .3em; opacity: .7; }
+  #avisoCopiado { font-size: .82rem; color: var(--biochar); min-width: 7rem; }
+
+  /* Resultado principal */
+  .hero { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  .kpi { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 14px; padding: 1.1rem 1.3rem; }
+  .kpi-titulo { font-family: var(--serif); font-size: 1.15rem; font-weight: 600; color: var(--verde-oscuro); }
+  .kpi-valor { white-space: nowrap; font-family: var(--serif); font-weight: 700; font-size: clamp(2rem, 3.6vw, 3rem); line-height: 1.1; margin: .2rem 0 .15rem; font-variant-numeric: tabular-nums; }
+  .kpi.principal .kpi-valor { font-size: clamp(2.6rem, 5vw, 3.8rem); }
+  .kpi-nota { font-size: .82rem; color: var(--gris-texto); }
+  body.no-certificable .kpi-valor { color: var(--rojo); }
+
+  /* Refinería */
+  #svgRefineria { width: 100%; height: auto; display: block; }
+  .rama { fill: none; transition: stroke-width .6s ease, opacity .4s ease; }
+  .mezcla { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: .88rem; margin-top: .4rem; }
+  .punto { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .35rem; vertical-align: -.05rem; }
+
+  /* Contador contra la leña */
+  .lena { display: flex; align-items: center; gap: 1.6rem; flex-wrap: wrap; }
+  .veces { font-family: var(--serif); font-weight: 700; font-size: 4.2rem; line-height: 1; color: var(--biochar); font-variant-numeric: tabular-nums; }
+  .veces small { display: block; font-family: var(--sans); font-size: .95rem; font-weight: 600; color: var(--verde-oscuro); margin-top: .2rem; }
+  .lena-texto { flex: 1 1 320px; font-size: .95rem; }
+
+  /* Formularios */
+  .grid { display: grid; gap: 1rem 1.1rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .campo label { display: block; font-size: .84rem; font-weight: 600; margin-bottom: .25rem; }
+  .campo input[type="number"], .campo select {
+    width: 100%; padding: .5rem .6rem; font: 1rem var(--sans); color: var(--verde-oscuro);
+    background: #fff; border: 1px solid var(--borde); border-radius: 8px;
+  }
+  .campo input:focus, .campo select:focus { outline: 2px solid var(--biochar); outline-offset: 1px; }
+  .interruptor { display: flex; align-items: center; gap: .55rem; font-size: .92rem; font-weight: 600; cursor: pointer; }
+  .interruptor input { width: 1.15rem; height: 1.15rem; accent-color: var(--biochar); }
+  .grupo-titulo { font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--gris-texto); font-weight: 700; margin: 1.2rem 0 .6rem; }
+  .grupo-titulo:first-child { margin-top: 0; }
+
+  .info-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.1rem; height: 1.1rem; margin-left: .3rem; padding: 0;
+    border: 1.5px solid var(--dorado); border-radius: 50%; background: #fff; color: var(--ocre);
+    font: italic 700 .74rem var(--serif); cursor: pointer; vertical-align: middle; line-height: 1;
+  }
+  #tooltip {
+    position: fixed; z-index: 60; display: none; max-width: 340px;
+    background: var(--verde-oscuro); color: #FBF8F1; padding: .7rem .9rem; border-radius: 10px;
+    font-size: .82rem; line-height: 1.45; box-shadow: 0 6px 24px rgba(29,59,44,.3);
+  }
+
+  /* Tablas */
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+  th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
+  th { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--gris-texto); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.total td { font-weight: 700; border-top: 2px solid var(--borde); }
+  .tabla-scroll { overflow-x: auto; }
+
+  .badge { display: inline-block; font-size: .66rem; font-weight: 700; padding: .12em .55em; border-radius: 999px; white-space: nowrap; }
+  .badge.metodologia { background: var(--verde-oscuro); color: #fff; }
+  .badge.paper { background: #3E6B55; color: #fff; }
+  .badge.medicion_propia { background: var(--ocre); color: #fff; }
+  .badge.dato_empresa { background: #fff; color: var(--biochar); border: 1.5px solid var(--biochar); }
+  .badge.supuesto { background: var(--naranja); color: #fff; }
+
+  .aviso { border-left: 4px solid var(--corcs); background: #F7EBD6; padding: .7rem .95rem; border-radius: 0 10px 10px 0; font-size: .88rem; margin-top: .9rem; }
+  #bannerNC { display: none; margin-bottom: 1rem; padding: .9rem 1.2rem; background: var(--rojo); color: #fff; border-radius: 12px; font-weight: 700; text-align: center; }
+  body.no-certificable #bannerNC { display: block; }
+
+  .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  svg.grafico { width: 100%; height: auto; display: block; }
+  #inTemp { width: 100%; accent-color: var(--biochar); margin: .6rem 0 .2rem; }
+
+  .medidor { height: 18px; border-radius: 9px; background: var(--borde); overflow: hidden; display: flex; }
+  .medidor > div { height: 100%; transition: width .6s ease; }
+  .unidades { display: flex; gap: .6rem; flex-wrap: wrap; margin: .8rem 0; }
+  .unidad { border: 1px solid var(--borde); border-radius: 10px; padding: .5rem .8rem; background: #fff; font-size: .85rem; }
+  .unidad strong { display: block; font-family: var(--serif); font-size: 1.1rem; }
+
+  .fin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: .8rem; }
+  .fin-grid > div { background: #fff; border: 1px solid var(--borde); border-radius: 10px; padding: .6rem .8rem; }
+  .fin-grid .v { white-space: nowrap; font-family: var(--serif); font-size: 1.45rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .fin-grid .k { font-size: .76rem; color: var(--gris-texto); }
+
+  details.panel { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 14px; overflow: hidden; }
+  details.panel summary {
+    cursor: pointer; list-style: none; padding: .9rem 1.3rem; font: 600 1.1rem var(--serif);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  details.panel summary::-webkit-details-marker { display: none; }
+  details.panel summary::after { content: "▾"; color: var(--ocre); }
+  details.panel[open] summary::after { content: "▴"; }
+  details.panel .contenido { padding: 0 1.3rem 1.3rem; }
+  details.panel.discreto { background: transparent; border-style: dashed; }
+  details.panel.discreto summary { font: 600 .85rem var(--sans); color: var(--gris-texto); padding: .55rem 1rem; }
+
+  /* Modo presentación */
+  body.presentacion .secundario { display: none !important; }
+  body.presentacion main { max-width: 1500px; padding-top: 1.4rem; }
+  body.presentacion h1 { font-size: 3.2rem; }
+  body.presentacion .kpi-valor { font-size: 4.6rem; }
+  body.presentacion .kpi.principal .kpi-valor { font-size: 6rem; }
+  body.presentacion .kpi-titulo { font-size: 1.5rem; }
+  body.presentacion .veces { font-size: 6rem; }
+  body.presentacion .lena-texto { font-size: 1.3rem; }
+  body.presentacion .mezcla { font-size: 1.15rem; }
+  body.presentacion #svgRefineria { max-height: 56vh; }
+
+  @media (max-width: 820px) {
+    html { font-size: 15.5px; }
+    .hero, .dos { grid-template-columns: 1fr; }
+    .kpi.principal .kpi-valor { font-size: 3rem; }
+    .kpi-valor { font-size: 2.4rem; }
+    .veces { font-size: 3.2rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .anillos, .barra .acciones, #tooltip, .no-imprimir, #inTemp { display: none !important; }
+    .tarjeta, .kpi, details.panel { break-inside: avoid; }
+    details.panel summary::after { content: ""; }
+  }
+</style>
+</head>
+<body>
+
+<svg class="anillos" viewBox="0 0 260 260" aria-hidden="true">
+  <g fill="none" stroke-width="1.5">
+    <circle cx="260" cy="0" r="40" stroke="#E0B25A"/>
+    <circle cx="260" cy="0" r="66" stroke="#E2D8C4"/>
+    <circle cx="260" cy="0" r="90" stroke="#E0B25A" opacity=".7"/>
+    <circle cx="260" cy="0" r="118" stroke="#E2D8C4"/>
+    <circle cx="260" cy="0" r="148" stroke="#E0B25A" opacity=".55"/>
+    <circle cx="260" cy="0" r="176" stroke="#E2D8C4"/>
+    <circle cx="260" cy="0" r="210" stroke="#E0B25A" opacity=".4"/>
+    <circle cx="260" cy="0" r="246" stroke="#E2D8C4"/>
+  </g>
+</svg>
+
+<main>
+<header class="cabecera">
+  <h1>PYRON</h1>
+  <div class="subtitulo">Refinería de madera de hule: biochar, créditos de carbono y bioestimulante</div>
+</header>
+
+<div class="barra">
+  <div class="segmentado" role="group" aria-label="Escenario">
+    <button type="button" data-esc="pesimista" aria-pressed="false">Pesimista</button>
+    <button type="button" data-esc="base" aria-pressed="true">Base</button>
+    <button type="button" data-esc="optimista" aria-pressed="false">Optimista</button>
+    <button type="button" data-esc="sinCreditos" aria-pressed="false">Sin créditos</button>
+  </div>
+  <div class="acciones">
+    <span id="avisoCopiado" aria-live="polite"></span>
+    <button type="button" class="boton secundario" id="btnEnlace">Copiar enlace</button>
+    <button type="button" class="boton secundario" id="btnImprimir">Imprimir o PDF</button>
+    <button type="button" class="boton primario" id="btnPresentacion">Modo presentación<kbd>P</kbd></button>
+  </div>
+</div>
+
+<div id="bannerNC">No certificable: H/Corg igual o mayor a 0.70, fuera del umbral de la metodología</div>
+
+<section class="hero" aria-label="Resultado">
+  <div class="kpi principal">
+    <div class="kpi-titulo">Ingreso total</div>
+    <div class="kpi-valor" id="outTotal">—</div>
+    <div class="kpi-nota" id="outTotalNota">—</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-titulo">EBITDA</div>
+    <div class="kpi-valor" id="outEbitda">—</div>
+    <div class="kpi-nota" id="outMargen">—</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-titulo">Créditos por tonelada</div>
+    <div class="kpi-valor" id="outCorcsT">—</div>
+    <div class="kpi-nota">1 t de biochar = <span id="outCorcsT2">—</span> CORCs. El modelo usa 1.91 (PF redondeado a 70 %).</div>
+  </div>
+</section>
+
+<section class="tarjeta" aria-label="La refinería">
+  <h3>La refinería</h3>
+  <svg id="svgRefineria" viewBox="0 0 900 320" role="img" aria-label="Flujo de la madera hacia biochar, créditos de carbono y bioestimulante"></svg>
+  <div class="mezcla" id="outMezcla"></div>
+</section>
+
+<section class="tarjeta lena" aria-label="Comparación con la leña" style="margin-top:1rem">
+  <div class="veces"><span id="outVeces">—</span><small>más que la leña</small></div>
+  <div class="lena-texto" id="outLena">—</div>
+</section>
+
+<!-- ==================== 1. ENTRADA ==================== -->
+<section class="secundario">
+  <h2>1 · Entrada</h2>
+  <div class="tarjeta">
+    <div class="grupo-titulo">Plantación</div>
+    <div class="grid">
+      <div class="campo">
+        <label for="inHa">Hectáreas renovadas por año</label>
+        <input type="number" id="inHa" value="100" min="0" step="any">
+      </div>
+      <div class="campo">
+        <label for="inArboles">Árboles por hectárea <button type="button" class="info-btn" data-tip="Dato de campo de la plantación.">i</button></label>
+        <input type="number" id="inArboles" value="400" min="0" step="any">
+      </div>
+      <div class="campo">
+        <label for="inM3">Madera por árbol (m³) <button type="button" class="info-btn" data-tip="Dato de campo de la plantación.">i</button></label>
+        <input type="number" id="inM3" value="1.47" min="0" step="any">
+      </div>
+      <div class="campo">
+        <label for="inDens">Densidad de la madera (kg/m³) <button type="button" class="info-btn" data-tip="Dato de campo de la plantación, base seca. Con 400 árboles y 1.47 m³ por árbol da 352.8 t de madera seca por hectárea.">i</button></label>
+        <input type="number" id="inDens" value="600" min="0" step="any">
+      </div>
+    </div>
+
+    <div class="grupo-titulo">Biochar y créditos</div>
+    <div class="grid">
+      <div class="campo">
+        <label for="inRend">Rendimiento de biochar (%) <button type="button" class="info-btn" data-tip="Base del modelo: 30 % a 500 °C, rango 25 a 35 %. Se puede mover con el deslizador de temperatura de la sección 2.">i</button></label>
+        <input type="number" id="inRend" value="30" min="0" max="100" step="any">
+      </div>
+      <div class="campo">
+        <label for="inCorg">Corg del biochar (fracción) <button type="button" class="info-btn" data-tip="0.867, el valor que usa el modelo (literatura, 550 °C). Un laboratorio externo midió 0.5055 en la muestra artesanal sin control de temperatura: es el escenario bajo. La regla 6.1.6 de Puro.earth pide carbono orgánico; con el descuento por defecto para madera daría 0.862.">i</button></label>
+        <input type="number" id="inCorg" value="0.867" min="0" max="1" step="any">
+      </div>
+      <div class="campo">
+        <label for="inHcorg">H/Corg (molar) <button type="button" class="info-btn" data-tip="0.46, de Ali et al. (2022), el valor que usa el modelo. Debe ser menor a 0.70 para certificar.">i</button></label>
+        <input type="number" id="inHcorg" value="0.46" min="0" max="2" step="any">
+      </div>
+      <div class="campo">
+        <label for="selDestino">Destino del biochar <button type="button" class="info-btn" data-tip="La permanencia depende de la temperatura del suelo donde se aplica el biochar (Ec. 6.4 y Tabla 6.1). 26 °C, la Costa Sur, es el caso más conservador. Los valores de EE. UU. son de trabajo: verificar en la capa de Lembrechts et al. 2022 que exige la metodología.">i</button></label>
+        <select id="selDestino"></select>
+      </div>
+      <div class="campo">
+        <label for="inTs">Temperatura del suelo en destino (°C)</label>
+        <input type="number" id="inTs" value="26" min="0" max="45" step="any">
+      </div>
+    </div>
+
+    <div class="grupo-titulo">Precios, año 1</div>
+    <div class="grid">
+      <div class="campo">
+        <label for="inPb">Biochar en planta, EXW (USD/t)</label>
+        <input type="number" id="inPb" value="250" min="0" step="any">
+      </div>
+      <div class="campo">
+        <label for="inPc">CORC (USD/tCO₂e)</label>
+        <input type="number" id="inPc" value="150" min="0" step="any">
+      </div>
+      <div class="campo">
+        <label for="inPl">Bioestimulante (USD/L)</label>
+        <input type="number" id="inPl" value="15.38" min="0" step="any">
+      </div>
+    </div>
+
+    <div class="grupo-titulo">Líneas de ingreso</div>
+    <div class="grid">
+      <label class="interruptor"><input type="checkbox" id="chkCred" checked> Incluir créditos de carbono</label>
+      <label class="interruptor"><input type="checkbox" id="chkBio" checked> Incluir bioestimulante</label>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 2. TEMPERATURA Y RENDIMIENTO ==================== -->
+<section class="secundario">
+  <h2>2 · Temperatura y rendimiento</h2>
+  <div class="tarjeta">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap">
+      <div><span id="outTemp" style="font:700 2.6rem var(--serif)">500</span><span style="font:600 1.3rem var(--serif);color:var(--ocre)"> °C</span></div>
+      <div class="nota">La planta opera a 500 °C. El deslizador cubre solo el tramo con datos: 380 y 400 °C medidos, 500 °C del modelo.</div>
+    </div>
+    <input type="range" id="inTemp" min="380" max="500" step="5" value="500" aria-label="Temperatura de pirólisis">
+    <svg id="svgCurva" class="grafico" viewBox="0 0 900 250" role="img" aria-label="Rendimiento de biochar contra temperatura, con el origen de cada punto"></svg>
+    <p class="nota" id="outRendNota" style="margin-top:.4rem"></p>
+  </div>
+</section>
+
+<!-- ==================== 3. CADENA DE CRÉDITOS ==================== -->
+<section class="secundario">
+  <h2>3 · Créditos por tonelada de biochar</h2>
+  <div class="dos">
+    <div class="tarjeta">
+      <h3>Cadena de Puro.earth</h3>
+      <div class="tabla-scroll"><table id="tablaCadena"><tbody></tbody></table></div>
+      <div class="aviso">El modelo financiero redondea PF a 70% y usa 1.91 CORCs por tonelada; la diferencia es de 0.5%.</div>
+    </div>
+    <div class="tarjeta">
+      <h3>Emisiones del proyecto, desglose</h3>
+      <div class="tabla-scroll"><table id="tablaEproject">
+        <thead><tr><th>Etapa</th><th class="num">kg CO₂e por t</th></tr></thead><tbody></tbody>
+      </table></div>
+      <p class="nota" style="margin-top:.6rem">Eproject = Eops + Eemb (Ec. 7.1 de la metodología). La fabricación de equipos es la parte Eemb.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 4. BIOESTIMULANTE ==================== -->
+<section class="secundario">
+  <h2>4 · Bioestimulante</h2>
+  <div class="dos">
+    <div class="tarjeta">
+      <h3>Cuánto sale de cada tonelada de madera</h3>
+      <p style="font-size:.92rem;margin-bottom:.8rem">Es el vapor de la pirólisis condensado y reposado tres meses. Se aplica muy diluido en hojas y suelo.</p>
+      <div class="tabla-scroll"><table id="tablaBio"><tbody></tbody></table></div>
+      <div class="grid" style="margin-top:.9rem">
+        <div class="campo">
+          <label for="inCond">Vapor que se condensa (%) <button type="button" class="info-btn" data-tip="Supuesto del modelo: 5 %, con rango de 3 a 8 %.">i</button></label>
+          <input type="number" id="inCond" value="5" min="0" max="100" step="any">
+        </div>
+      </div>
+      <p class="nota" style="margin-top:.6rem">Un kilo equivale a cerca de un litro.</p>
+    </div>
+    <div class="tarjeta">
+      <h3>Por qué no se exporta</h3>
+      <svg id="svgPrecios" class="grafico" viewBox="0 0 520 240" role="img" aria-label="Comparación de precios del bioestimulante"></svg>
+      <p style="font-size:.92rem;margin-top:.6rem">Afuera es un commodity; aquí es un producto de venta consultiva. Se vende solo en Guatemala, a fincas medianas y pequeñas por medio de agroservicios.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 5. COSTOS Y MARGEN ==================== -->
+<section class="secundario">
+  <h2>5 · Costos y margen</h2>
+  <div class="dos">
+    <div class="tarjeta">
+      <h3>Costo por tonelada de biochar</h3>
+      <div class="tabla-scroll"><table id="tablaCostos">
+        <thead><tr><th>Etapa</th><th class="num">USD por t</th></tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+    <div class="tarjeta">
+      <h3>Ingreso y margen por tonelada</h3>
+      <div class="tabla-scroll"><table id="tablaMargen">
+        <thead><tr><th>Concepto</th><th class="num">USD por t</th></tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 6. PLANTA ==================== -->
+<section class="secundario">
+  <h2>6 · Dimensionamiento de planta</h2>
+  <div class="tarjeta">
+    <p style="font-size:.92rem">Equipo Beston BST-50S: 3.2 t de madera seca por hora, 6,500 horas al año, <strong>20,800 t por unidad</strong>, USD 910 mil instalada.</p>
+    <div class="unidades" id="outUnidades"></div>
+    <div class="medidor" id="medidorPlanta" aria-hidden="true"></div>
+    <p style="margin-top:.6rem;font-size:.92rem" id="outPlanta"></p>
+  </div>
+</section>
+
+<!-- ==================== 7. MODELO FINANCIERO ==================== -->
+<section class="secundario">
+  <h2>7 · Modelo financiero</h2>
+  <div class="tarjeta">
+    <h3 id="finTitulo">Escenario base</h3>
+    <div class="fin-grid" id="finGrid"></div>
+    <p class="nota" id="finNota" style="margin-top:.7rem"></p>
+  </div>
+  <div style="margin-top:1rem;display:grid;gap:1rem">
+    <div class="tarjeta">
+      <h3>Flujo de caja acumulado, escenario base</h3>
+      <svg id="svgFlujo" class="grafico" viewBox="0 0 900 300" role="img" aria-label="Flujo de caja libre acumulado de 2027 a 2037"></svg>
+    </div>
+    <div class="tarjeta">
+      <h3>VAN al mover cada variable</h3>
+      <svg id="svgTornado" class="grafico" viewBox="0 0 900 300" role="img" aria-label="Sensibilidad del VAN"></svg>
+      <p class="nota" style="margin-top:.4rem">La barra del bioestimulante es una prueba de estrés: el precio cae de USD 15.38 al precio de commodity, USD 2 por litro.</p>
+    </div>
+  </div>
+  <p class="nota" style="margin-top:.6rem">Resultados fijos del modelo financiero de la Fase 4. No se recalculan con los campos de esta página.</p>
+</section>
+
+<!-- ==================== CORRIDAS ==================== -->
+<section class="secundario">
+  <details class="panel">
+    <summary>Corridas de laboratorio y especies</summary>
+    <div class="contenido">
+      <div class="tabla-scroll"><table>
+        <thead><tr><th>Corrida</th><th>Especie</th><th class="num">Rendimiento</th><th>Temperatura</th><th>Duración</th></tr></thead>
+        <tbody id="tbodyCorridas"></tbody>
+      </table></div>
+      <p class="nota" style="margin-top:.6rem">Un laboratorio externo midió un Corg de 50.55 % en la muestra artesanal de la corrida 0, hecha sin control de temperatura. Ese valor define el escenario bajo.</p>
+    </div>
+  </details>
+</section>
+
+<section class="secundario">
+  <details class="panel discreto" id="panelFuentes">
+    <summary>Fuentes y trazabilidad</summary>
+    <div class="contenido">
+      <div class="tabla-scroll"><table>
+        <thead><tr><th>Parámetro</th><th class="num">Valor</th><th>Unidad</th><th>Tipo</th><th>Fuente</th></tr></thead>
+        <tbody id="tbodyFuentes"></tbody>
+      </table></div>
+      <p class="nota" style="margin-top:.6rem">Las versiones de la Fase 3 siguen disponibles: <a href="../" style="color:var(--biochar)">ejecutiva</a> y <a href="../completa/" style="color:var(--biochar)">completa</a>.</p>
+    </div>
+  </details>
+</section>
+</main>
+
+<div id="tooltip" role="tooltip"></div>
+
+<script>
+"use strict";
+/* ===========================================================================
+   PARÁMETROS CON PROCEDENCIA
+   =========================================================================== */
+const FUENTE_PURO = "Puro.earth. (2025). Puro.earth Certification Framework: Biochar (Edition 2025, Version 2). Puro.earth Oy. Aprobado 27-nov-2025.";
+const FUENTE_RUBBERWOOD = "Characteristics of Biochars Derived from the Pyrolysis and Co-Pyrolysis of Rubberwood Sawdust and Sewage Sludge for Further Applications. Sustainability, 2022, 14(7), 3829.";
+const URL_RUBBERWOOD = "https://www.mdpi.com/2071-1050/14/7/3829";
+const MODELO = "Modelo financiero PYRON, Fase 4.";
+const P = (valor, unidad, tipo, nombre, fuente, url) => ({ valor, unidad, fuente, url: url || "", tipo, nombre });
+
+const PARAMS = {
+  factor_co2:   P(44 / 12, "tCO₂e/tC", "metodologia", "Factor de conversión de C a CO₂ (44/12)", "Razón de masas molares CO₂/C. Ec. 6.1, página 94. " + FUENTE_PURO),
+  umbral_hcorg: P(0.70, "molar", "metodologia", "Umbral de elegibilidad H/Corg", "Regla 3.5.1, página 33: H/Corg \"strictly below 0.70\". Criterio binario, sin factor reducido. " + FUENTE_PURO),
+  tabla_6_1:    P("M y a, 7 a 40 °C", "—", "metodologia", "Parámetros de persistencia (Tabla 6.1)", "Tabla 6.1, página 101. Horizonte de 200 años. La temperatura del suelo se redondea al entero superior (regla 6.2.4). La Ec. 6.3 de la página 101 está impresa sin dividir entre 100; PF está en %, así que se implementa con la división. " + FUENTE_PURO),
+  cbaseline:    P(0, "tCO₂e", "metodologia", "Cbaseline", "Sección 6.3, página 106: nulo para una instalación nueva que procesa residuo de replantación. " + FUENTE_PURO),
+  eleakage:     P(0, "tCO₂e", "supuesto", "Eleakage", MODELO + " La sección 8 de la metodología pide evaluar fuga ecológica y de mercado."),
+  corg:         P(0.867, "fracción", "paper", "Corg del biochar de hule", FUENTE_RUBBERWOOD + " 86.70 % en peso a 550 °C; es el valor base del modelo a 500 °C. Nota: la regla 6.1.6 de Puro.earth (página 96) pide carbono orgánico, Corg = Ctot − Cinorg; con el valor por defecto para madera (Cinorg = 0.005) daría 0.862. La certificación lo medirá en un laboratorio externo.", URL_RUBBERWOOD),
+  corg_bajo:    P(0.5055, "fracción", "medicion_propia", "Corg del escenario bajo", "Medido por un laboratorio externo en la muestra artesanal de la corrida 0, hecha sin control de temperatura."),
+  hcorg:        P(0.46, "molar", "paper", "H/Corg del biochar", "Ali et al. (2022). Es el valor que usa el " + MODELO),
+  ts_gt:        P(26, "°C", "supuesto", "Temperatura del suelo, Costa Sur de Guatemala", MODELO + " Caso más conservador. La regla 6.2.4 pide el dataset oficial de Puro.earth derivado de Lembrechts et al. (2022), capa SBIO1_Annual_Mean_Temperature_5_15cm, por región de primer uso del biochar."),
+  ts_eeuu:      P("11 a 24", "°C", "supuesto", "Temperatura del suelo, regiones de EE. UU.", "Valores iniciales de trabajo, editables: California 20, Corn Belt 11, Llanuras Altas de Texas 17, Florida central 24. Verificar en la capa de Lembrechts et al. 2022 que exige la metodología. El escenario optimista usa 20 °C."),
+  ep_diesel:    P(22.33, "kg CO₂e/t biochar", "supuesto", "Eproject: diésel de tala, troceado, chipeado y carga", MODELO),
+  ep_transp:    P(14.89, "kg CO₂e/t biochar", "supuesto", "Eproject: transporte de madera, lote a planta, ida y vuelta", MODELO),
+  ep_elec:      P(170.44, "kg CO₂e/t biochar", "supuesto", "Eproject: electricidad, incluida la secadora", MODELO),
+  ep_metano:    P(14.00, "kg CO₂e/t biochar", "supuesto", "Eproject: metano escapado", MODELO),
+  ep_puerto:    P(78.50, "kg CO₂e/t biochar", "supuesto", "Eproject: camión a puerto y flete marítimo a EE. UU.", MODELO),
+  ep_emb:       P(20.00, "kg CO₂e/t biochar", "supuesto", "Eproject: fabricación de equipos (Eemb)", MODELO),
+  arboles:      P(400, "árboles/ha", "dato_empresa", "Árboles por hectárea", "Dato de campo de la plantación."),
+  m3:           P(1.47, "m³/árbol", "dato_empresa", "Madera por árbol", "Dato de campo de la plantación."),
+  densidad:     P(600, "kg/m³", "dato_empresa", "Densidad de la madera, base seca", "Dato de campo de la plantación."),
+  lena_arbol:   P(9.615, "USD/árbol", "dato_empresa", "Madera vendida como leña", "Dato de campo de la plantación: USD 3,846 por hectárea, USD 9.62 por árbol."),
+  rendimiento:  P(30, "%", "supuesto", "Rendimiento de biochar a 500 °C", MODELO + " Rango 25 a 35 %."),
+  temp_op:      P(500, "°C", "supuesto", "Temperatura de operación de la planta", MODELO),
+  rend_c0:      P(30.5, "%", "medicion_propia", "Rendimiento, corrida 0 (hule, artesanal, sin control)", "Corridas de laboratorio de PYRON."),
+  rend_c1:      P(33.4, "%", "medicion_propia", "Rendimiento, corrida 1 (hule, 250 a 380 °C)", "Corridas de laboratorio de PYRON."),
+  rend_c2:      P(32.5, "%", "medicion_propia", "Rendimiento, corrida 2 (hule, 250 a 400 °C)", "Corridas de laboratorio de PYRON."),
+  rend_c3:      P(27.7, "%", "medicion_propia", "Rendimiento, corrida 3 (limón, 250 a 400 °C)", "Corridas de laboratorio de PYRON."),
+  precio_biochar: P(250, "USD/t", "supuesto", "Precio del biochar, en planta (EXW)", MODELO + " Rango 200 a 300."),
+  precio_corc:  P(150, "USD/tCO₂e", "supuesto", "Precio del CORC", MODELO + " Rango 120 a 185."),
+  precio_bio:   P(15.38, "USD/L", "supuesto", "Precio del bioestimulante", MODELO + " Rango 14.42 a 16.35. Venta en Guatemala, envasado y con registro MAGA. El bioestimulante es aceite piroleñoso: el vapor de la pirólisis condensado y reposado."),
+  liquido:      P(0.09, "fracción", "medicion_propia", "Líquido crudo por t de madera seca", "Corridas de laboratorio de PYRON."),
+  aprovechable: P(0.70, "fracción", "paper", "Fracción aprovechable tras tres meses de reposo", "Embrapa, Circular Técnica 65."),
+  condensado:   P(0.05, "fracción", "supuesto", "Fracción del vapor que se condensa", MODELO + " Rango 3 a 8 %."),
+  bench_granel: P(0.90, "USD/L", "supuesto", "Bioestimulante a granel, sudeste asiático", MODELO),
+  bench_linea:  P(3.80, "USD/L", "supuesto", "Bioestimulante orgánico, venta en línea", MODELO),
+  c_transf:     P(142, "USD/t biochar", "supuesto", "Costo: transformación (pasos 3 a 5)", MODELO),
+  c_abast:      P(113, "USD/t biochar", "supuesto", "Costo: abastecimiento (pasos 1 y 2)", MODELO),
+  c_carbono:    P(31, "USD/t biochar", "supuesto", "Costo: venta y verificación de carbono", MODELO),
+  c_calidad:    P(26, "USD/t biochar", "supuesto", "Costo: calidad y empaque (pasos 6 y 7)", MODELO),
+  c_gestion:    P(17, "USD/t biochar", "supuesto", "Costo: gestión de planta", MODELO),
+  c_envasado:   P(3, "USD/t biochar", "supuesto", "Costo: envasado de bioestimulante (paso 12)", MODELO),
+  cap_hora:     P(3.2, "t madera seca/h", "supuesto", "Capacidad de una unidad BST-50S", MODELO),
+  horas:        P(6500, "h/año", "supuesto", "Horas de operación al año", MODELO),
+  costo_unidad: P(910000, "USD", "supuesto", "Costo instalado por unidad", MODELO + " Precio bajo de referencia: USD 850 mil."),
+  tasa:         P(0.12, "fracción", "supuesto", "Tasa de descuento", MODELO),
+  fcff:         P("2027 a 2037", "USD", "supuesto", "Flujo de caja libre anual, escenario base", MODELO + " Descontado al 12 % con 2027 como año 0 da USD 12,840,410."),
+  resultados:   P("4 escenarios", "—", "supuesto", "Escenarios y sensibilidad del VAN", MODELO + " Valores fijos: la calculadora no los recalcula.")
+};
+
+const F = PARAMS.factor_co2.valor;
+const EP_PARTES = ["ep_diesel", "ep_transp", "ep_elec", "ep_metano", "ep_puerto", "ep_emb"];
+const EPROJECT = EP_PARTES.reduce((s, k) => s + PARAMS[k].valor, 0) / 1000;      // t CO2e por t de biochar
+const COSTOS = ["c_transf", "c_abast", "c_carbono", "c_calidad", "c_gestion", "c_envasado"];
+const CAP_UNIDAD = PARAMS.cap_hora.valor * PARAMS.horas.valor;                   // 20,800 t
+const L_POR_T_BASE = 1000 * PARAMS.liquido.valor * PARAMS.aprovechable.valor;   // × condensado
+
+const TABLA_6_1 = {
+  7:  { M: 96.59, a: 11.28 },  8:  { M: 95.98, a: 13.44 },  9:  { M: 95.36, a: 15.66 },
+  10: { M: 94.73, a: 17.92 },  11: { M: 94.10, a: 20.15 },  12: { M: 93.50, a: 22.31 },
+  13: { M: 92.92, a: 24.38 },  14: { M: 92.38, a: 26.33 },  15: { M: 91.87, a: 28.16 },
+  16: { M: 91.40, a: 29.84 },  17: { M: 90.96, a: 31.39 },  18: { M: 90.57, a: 32.81 },
+  19: { M: 90.20, a: 34.11 },  20: { M: 89.87, a: 35.29 },  21: { M: 89.57, a: 36.36 },
+  22: { M: 89.29, a: 37.35 },  23: { M: 89.03, a: 38.26 },  24: { M: 88.79, a: 39.09 },
+  25: { M: 88.57, a: 39.87 },  26: { M: 88.37, a: 40.59 },  27: { M: 88.18, a: 41.27 },
+  28: { M: 87.99, a: 41.91 },  29: { M: 87.82, a: 42.52 },  30: { M: 87.66, a: 43.10 },
+  31: { M: 87.50, a: 43.67 },  32: { M: 87.34, a: 44.21 },  33: { M: 87.19, a: 44.74 },
+  34: { M: 87.04, a: 45.26 },  35: { M: 86.90, a: 45.77 },  36: { M: 86.75, a: 46.27 },
+  37: { M: 86.61, a: 46.77 },  38: { M: 86.47, a: 47.27 },  39: { M: 86.33, a: 47.76 },
+  40: { M: 86.19, a: 48.25 }
+};
+
+/* Destinos del biochar: temperatura del suelo editable */
+const DESTINOS = [
+  { id: "gt", nombre: "Costa Sur de Guatemala", ts: 26 },
+  { id: "ca", nombre: "Valle Central de California", ts: 20 },
+  { id: "cb", nombre: "Corn Belt (Iowa e Illinois)", ts: 11 },
+  { id: "tx", nombre: "Llanuras Altas de Texas", ts: 17 },
+  { id: "fl", nombre: "Florida central", ts: 24 }
+];
+
+/* Rendimiento contra temperatura: cada punto declara su origen */
+const CURVA = [
+  { t: 380, r: PARAMS.rend_c1.valor, origen: "medido", etiqueta: "Corrida 1" },
+  { t: 400, r: PARAMS.rend_c2.valor, origen: "medido", etiqueta: "Corrida 2" },
+  { t: 500, r: PARAMS.rendimiento.valor, origen: "modelo", etiqueta: "Modelo Fase 4" }
+];
+
+const CORRIDAS = [
+  { id: "0, artesanal", especie: "Hule", r: PARAMS.rend_c0.valor, temp: "Sin control", dur: "8 h" },
+  { id: "1", especie: "Hule", r: PARAMS.rend_c1.valor, temp: "250 a 380 °C", dur: "6 h 35 min" },
+  { id: "2", especie: "Hule", r: PARAMS.rend_c2.valor, temp: "250 a 400 °C", dur: "7 h 10 min" },
+  { id: "3", especie: "Limón", r: PARAMS.rend_c3.valor, temp: "250 a 400 °C", dur: "6 h 50 min" }
+];
+const ESPECIES_PENDIENTES = ["Canoj", "Macadamia", "Café", "Mangostán", "Palma", "Teca"];
+
+/* Escenarios: valores de entrada de la tabla de rangos y resultados oficiales fijos */
+const ESCENARIOS = {
+  pesimista: { nombre: "Pesimista",
+    valores: { corg: 0.5055, rend: 25, pb: 200, pc: 120, pl: 14.42, dest: "gt", ts: 26, cred: true, bio: true },
+    oficial: { van: -0.92, tir: 7.5, inv: 3.83, anio0: 2.72, expo: 4.28, corcsT: 0.885, pf: 65 } },
+  base: { nombre: "Base",
+    valores: { corg: 0.867, rend: 30, pb: 250, pc: 150, pl: 15.38, dest: "gt", ts: 26, cred: true, bio: true },
+    oficial: { van: 12.84, tir: 66.8, inv: 3.19, anio0: 2.28, expo: 2.75, corcsT: 1.905, pf: 70, recup: 2.2, recupDesc: 2.4 } },
+  optimista: { nombre: "Optimista",
+    valores: { corg: 0.867, rend: 35, pb: 300, pc: 185, pl: 16.35, dest: "ca", ts: 20, cred: true, bio: true },
+    oficial: { van: 24.29, tir: 122.9, inv: 2.66, anio0: 1.875, expo: 1.875, corcsT: 2.032, pf: 74 } },
+  sinCreditos: { nombre: "Sin créditos",
+    valores: { corg: 0.867, rend: 30, pb: 250, pc: 150, pl: 15.38, dest: "gt", ts: 26, cred: false, bio: true },
+    oficial: { van: 2.51, tir: 28.3, inv: 3.19 } }
+};
+
+/* Flujo de caja libre anual del modelo, escenario base (USD) */
+const FCFF = [-2277000, -472726, 2217280, 3212608, 3308427, 3407121, 3429926, 3489130, 3596975, 3708056, 4172469];
+const ANIO_0 = 2027;
+
+/* Sensibilidad del VAN, valores fijos del modelo (USD M) */
+const TORNADO = [
+  { n: "Bioestimulante a USD 2 por L", bajo: 6.1, alto: null },
+  { n: "Corg 50.55 %", bajo: 7.81, alto: null },
+  { n: "Rendimiento 25 % / 33 %", bajo: 9.20, alto: 14.73 },
+  { n: "Biochar USD 200 / 300 por t", bajo: 10.45, alto: 15.19 },
+  { n: "CORC USD 120 / 185", bajo: 10.78, alto: 15.25 },
+  { n: "Unidad de pirólisis USD 850 mil", bajo: 12.45, alto: null }
+];
+const VAN_BASE = 12.84;
+
+/* ===========================================================================
+   MOTOR DE CÁLCULO (funciones puras)
+   =========================================================================== */
+function paramsPersistencia(ts) {
+  // Regla 6.2.4: redondeo al entero superior; mínimo 7 °C; la tabla termina en 40 °C
+  return TABLA_6_1[Math.min(40, Math.max(7, Math.ceil(ts)))];
+}
+function calcCstored(q, corg) { return q * corg * F; }                       // Ec. 6.1
+function calcPF(hcorg, ts) { const p = paramsPersistencia(ts); return Math.min(100, Math.max(0, p.M - p.a * hcorg)); } // Ec. 6.4
+function calcCloss(cs, pf) { return cs * (100 - pf) / 100; }                 // Ec. 6.3
+function calcCORCs(cs, cb, cl, ep, el) { return Math.max(0, cs - cb - cl - ep - el); } // Ec. 5.1
+
+function creditosPorTonelada(corg, hcorg, ts) {
+  const cs = calcCstored(1, corg);
+  const pf = calcPF(hcorg, ts);
+  const closs = calcCloss(cs, pf);
+  const certificable = hcorg < PARAMS.umbral_hcorg.valor;
+  const corcsT = certificable ? calcCORCs(cs, PARAMS.cbaseline.valor, closs, EPROJECT, PARAMS.eleakage.valor) : 0;
+  return { cs, pf, closs, corcsT, certificable };
+}
+
+function interpolarCurva(t) {
+  if (t <= CURVA[0].t) return CURVA[0].r;
+  for (let i = 0; i < CURVA.length - 1; i++) {
+    const a = CURVA[i], b = CURVA[i + 1];
+    if (t <= b.t) return a.r + (t - a.t) / (b.t - a.t) * (b.r - a.r);
+  }
+  return CURVA[CURVA.length - 1].r;
+}
+
+function calcular(c) {
+  const madera = c.ha * c.arboles * c.m3 * c.dens / 1000;
+  const biochar = madera * c.rend / 100;
+  const k = creditosPorTonelada(c.corg, c.hcorg, c.ts);
+  const corcs = biochar * k.corcsT;
+  const lPorT = L_POR_T_BASE * c.cond;                 // L por t de madera seca
+  const litros = madera * lPorT;
+  const ingB = biochar * c.pb;
+  const ingC = c.cred ? corcs * c.pc : 0;
+  const ingL = c.bio ? litros * c.pl : 0;
+  const total = ingB + ingC + ingL;
+  const costoT = COSTOS.reduce((s, key) => {
+    if (key === "c_carbono" && !c.cred) return s;
+    if (key === "c_envasado" && !c.bio) return s;
+    return s + PARAMS[key].valor;
+  }, 0);
+  const costos = costoT * biochar;
+  const lenaHa = c.arboles * PARAMS.lena_arbol.valor;
+  const unidades = madera > 0 ? Math.ceil(madera / CAP_UNIDAD) : 0;
+  return {
+    madera, biochar, corcs, litros, lPorT, ingB, ingC, ingL, total, costoT, costos,
+    ebitda: total - costos, margen: total > 0 ? (total - costos) / total : 0,
+    lenaHa, lena: c.ha * lenaHa, veces: c.ha > 0 && lenaHa > 0 ? total / (c.ha * lenaHa) : 0,
+    unidades, util: unidades ? madera / (unidades * CAP_UNIDAD) : 0,
+    libre: unidades * CAP_UNIDAD - madera, ...k
+  };
+}
+
+const BASE = { ha: 100, arboles: 400, m3: 1.47, dens: 600, rend: 30, corg: 0.867, hcorg: 0.46, ts: 26,
+               pb: 250, pc: 150, pl: 15.38, cred: true, bio: true, cond: 0.05 };
+
+function van(flujos, tasa) { return flujos.reduce((s, f, i) => s + f / Math.pow(1 + tasa, i), 0); }
+
+/* ===========================================================================
+   PRUEBAS — correrPruebas() desde la consola. Tolerancia 1 %.
+   =========================================================================== */
+function correrPruebas() {
+  const res = [];
+  const chk = (prueba, obtenido, esperado) => {
+    const error = Math.abs(obtenido - esperado) / Math.abs(esperado);
+    res.push({ prueba, obtenido: +obtenido.toFixed(4), esperado, "error %": +(error * 100).toFixed(2), ok: error <= 0.01 });
+  };
+  const cs1 = calcCstored(1, 0.80), pf1 = calcPF(0.45, 26);
+  chk("1. Caso Fase 3, tCO2e antes de Eproject", cs1 - calcCloss(cs1, pf1), 2.0564);
+  chk("2. CORCs por t de biochar (Ec. 6.4)", creditosPorTonelada(0.867, 0.46, 26).corcsT, 1.8956);
+  chk("2b. Referencia con PF fijo en 70 %", calcCstored(1, 0.867) * 0.70 - EPROJECT, 1.9051);
+  const h = calcular({ ...BASE, ha: 1 });
+  chk("3. Hectárea: madera seca (t)", h.madera, 352.8);
+  chk("3. Hectárea: biochar (t)", h.biochar, 106);
+  chk("3. Hectárea: CORCs", h.corcs, 202);
+  chk("3. Hectárea: bioestimulante (L)", h.litros, 1111);
+  chk("3. Hectárea: ingreso (USD)", h.total, 73800);
+  chk("3. Hectárea: veces la leña", h.veces, 19);
+  const o = calcular(BASE);
+  chk("4. Operación: madera seca (t)", o.madera, 35280);
+  chk("4. Operación: biochar (t)", o.biochar, 10584);
+  chk("4. Operación: CORCs", o.corcs, 20164);
+  chk("4. Operación: bioestimulante (L)", o.litros, 111132);
+  chk("4. Operación: ingreso (USD)", o.total, 7.4e6);
+  chk("5. Planta: unidades", o.unidades, 2);
+  chk("5. Planta: utilización", o.util, 0.85);
+  chk("Eproject (kg CO2e por t)", EPROJECT * 1000, 320.16);
+  chk("Bioestimulante (L por t de madera)", L_POR_T_BASE * 0.05, 3.15);
+  chk("VAN del FCFF del modelo (USD)", van(FCFF, PARAMS.tasa.valor), 12840410);
+  if (typeof console.table === "function") console.table(res);
+  const ok = res.every(r => r.ok);
+  console.log(ok ? "Pruebas PYRON Fase 4: " + res.length + " de " + res.length + " OK"
+                 : "Pruebas PYRON Fase 4: FALLA " + res.filter(r => !r.ok).map(r => r.prueba).join("; "));
+  return res;
+}
+
+/* ===========================================================================
+   INTERFAZ
+   =========================================================================== */
+const $ = id => document.getElementById(id);
+const nf = (x, d = 0) => x.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+function usd(x, dM = 1) {
+  const s = x < 0 ? "−" : "", a = Math.abs(x);
+  return a >= 1e6 ? s + "USD " + nf(a / 1e6, dM) + "M" : s + "USD " + nf(a, 0);
+}
+const REDUCIR = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const previos = {};
+function animar(id, valor, formato) {
+  const el = $(id), desde = previos[id];
+  previos[id] = valor;
+  if (REDUCIR || desde === undefined || desde === valor || !isFinite(desde)) { el.textContent = formato(valor); return; }
+  if (el._raf) cancelAnimationFrame(el._raf);
+  const t0 = performance.now();
+  const paso = ahora => {
+    const f = Math.min(1, (ahora - t0) / 420), e = 1 - Math.pow(1 - f, 3);
+    el.textContent = formato(desde + (valor - desde) * e);
+    if (f < 1) el._raf = requestAnimationFrame(paso);
+  };
+  el._raf = requestAnimationFrame(paso);
+}
+
+let escActivo = "base", modificado = false, aplicando = false;
+
+function destinoActual() { return DESTINOS.find(d => d.id === $("selDestino").value) || DESTINOS[0]; }
+function num(id, def) { const v = parseFloat($(id).value); return isFinite(v) ? v : def; }
+
+function leer() {
+  return {
+    ha: Math.max(0, num("inHa", 0)), arboles: num("inArboles", 0), m3: num("inM3", 0), dens: num("inDens", 0),
+    rend: num("inRend", 0), corg: Math.min(1, Math.max(0, num("inCorg", 0))), hcorg: Math.max(0, num("inHcorg", 0)),
+    ts: num("inTs", 26), pb: num("inPb", 0), pc: num("inPc", 0), pl: num("inPl", 0),
+    cred: $("chkCred").checked, bio: $("chkBio").checked, cond: Math.max(0, num("inCond", 0)) / 100
+  };
+}
+
+/* ----- Refinería ----- */
+const RAMAS = [
+  { id: 0, nombre: "Biochar", color: "var(--biochar)", y: 66 },
+  { id: 1, nombre: "Créditos de carbono", color: "var(--corcs)", y: 160 },
+  { id: 2, nombre: "Bioestimulante", color: "var(--bioestim)", y: 254 }
+];
+function construirRefineria() {
+  let s = '<rect x="18" y="116" width="158" height="88" rx="14" fill="#FBF8F1" stroke="#E2D8C4"/>' +
+    '<text x="97" y="150" text-anchor="middle" font-size="15" font-weight="700" fill="#1D3B2C">Madera seca</text>' +
+    '<text id="refMadera" x="97" y="178" text-anchor="middle" font-size="14" fill="#6B6F64">—</text>' +
+    '<path id="refTronco" class="rama" d="M176 160 L 330 160" style="stroke:#D9C9A8" stroke-width="96"/>';
+  RAMAS.forEach(r => {
+    s += '<path id="refR' + r.id + '" class="rama" d="M380 160 C 500 160, 520 ' + r.y + ', 628 ' + r.y + '" style="stroke:' + r.color + ';opacity:.9" stroke-width="0"/>';
+  });
+  s += '<circle cx="356" cy="160" r="56" fill="#1D3B2C"/>' +
+    '<text x="356" y="155" text-anchor="middle" font-size="13" fill="#FBF8F1">Pirólisis</text>' +
+    '<text id="refTemp" x="356" y="175" text-anchor="middle" font-size="15" font-weight="700" fill="#E0B25A">500 °C</text>';
+  RAMAS.forEach(r => {
+    s += '<text x="642" y="' + (r.y - 14) + '" font-size="14" font-weight="700" fill="#1D3B2C">' + r.nombre + '</text>' +
+      '<text id="refV' + r.id + '" x="642" y="' + (r.y + 8) + '" font-size="21" font-weight="700" fill="#1D3B2C" font-family="Georgia, serif">—</text>' +
+      '<text id="refD' + r.id + '" x="642" y="' + (r.y + 27) + '" font-size="12.5" fill="#6B6F64">—</text>';
+  });
+  $("svgRefineria").innerHTML = s;
+}
+function renderRefineria(r, c) {
+  const vals = [r.ingB, r.ingC, r.ingL];
+  const activos = [true, c.cred, c.bio];
+  const MAX = 96;
+  $("refMadera").textContent = nf(r.madera, 0) + " t";
+  $("refTemp").textContent = nf(num("inTemp", 500), 0) + " °C";
+  $("refTronco").setAttribute("stroke-width", r.total > 0 ? MAX : 0);
+  const anchos = vals.map((v, i) => r.total > 0 ? Math.max(activos[i] && v > 0 ? 3 : 0, MAX * v / r.total) : 0);
+  let acum = 160 - anchos.reduce((a, b) => a + b, 0) / 2;
+  vals.forEach((v, i) => {
+    const w = anchos[i], y0 = acum + w / 2; acum += w;
+    $("refR" + i).setAttribute("d", "M380 " + y0.toFixed(1) + " C 500 " + y0.toFixed(1) + ", 520 " + RAMAS[i].y + ", 628 " + RAMAS[i].y);
+    $("refR" + i).style.strokeWidth = w;
+    $("refR" + i).style.opacity = activos[i] ? .9 : .15;
+    $("refV" + i).textContent = activos[i] ? usd(v) : "No incluido";
+  });
+  $("refD0").textContent = nf(r.biochar, 0) + " t × " + usd(c.pb) + " por t";
+  $("refD1").textContent = nf(r.corcs, 0) + " CORCs × " + usd(c.pc);
+  $("refD2").textContent = nf(r.litros, 0) + " L × USD " + nf(c.pl, 2);
+  const pct = v => r.total > 0 ? Math.round(v / r.total * 100) : 0;
+  $("outMezcla").innerHTML =
+    '<span><i class="punto" style="background:var(--corcs)"></i>CORCs ' + pct(r.ingC) + ' %</span>' +
+    '<span><i class="punto" style="background:var(--biochar)"></i>Biochar ' + pct(r.ingB) + ' %</span>' +
+    '<span><i class="punto" style="background:var(--bioestim)"></i>Bioestimulante ' + pct(r.ingL) + ' %</span>';
+}
+
+/* ----- Curva de rendimiento ----- */
+function renderCurva(tActual, rendUso) {
+  const W = 900, mL = 64, mR = 30, top = 24, alto = 170;
+  const x = t => mL + (W - mL - mR) * (t - 370) / 140;
+  const y = v => top + alto * (1 - (v - 24) / 12);
+  let s = '<rect x="' + mL + '" y="' + y(35) + '" width="' + (W - mL - mR) + '" height="' + (y(25) - y(35)) + '" fill="#E2D8C4" opacity=".35"/>' +
+    '<text x="' + (mL + 8) + '" y="' + (y(25) - 3) + '" font-size="11" fill="#6B6F64">rango del modelo, 25 a 35 %</text>';
+  [26, 30, 34].forEach(v => {
+    s += '<line x1="' + mL + '" y1="' + y(v) + '" x2="' + (W - mR) + '" y2="' + y(v) + '" stroke="#E2D8C4"/>' +
+      '<text x="' + (mL - 8) + '" y="' + y(v) + '" font-size="11" fill="#6B6F64" text-anchor="end" dominant-baseline="middle">' + v + ' %</text>';
+  });
+  s += '<path d="M' + x(380) + ' ' + y(CURVA[0].r) + ' L' + x(400) + ' ' + y(CURVA[1].r) + '" stroke="#8A5A12" stroke-width="2.5" fill="none"/>' +
+    '<path d="M' + x(400) + ' ' + y(CURVA[1].r) + ' L' + x(500) + ' ' + y(CURVA[2].r) + '" stroke="#6B6F64" stroke-width="2" stroke-dasharray="6 5" fill="none"/>' +
+    '<text x="' + ((x(400) + x(500)) / 2) + '" y="' + (y((CURVA[1].r + CURVA[2].r) / 2) - 10) + '" font-size="11" fill="#6B6F64" text-anchor="middle">tramo interpolado, sin medición propia</text>';
+  s += '<line x1="' + x(500) + '" y1="' + top + '" x2="' + x(500) + '" y2="' + (top + alto) + '" stroke="#E0B25A" stroke-width="1.5" stroke-dasharray="5 4"/>' +
+    '<text x="' + (x(500) - 6) + '" y="' + (top + 12) + '" font-size="11" fill="#8A5A12" text-anchor="end">operación 500 °C</text>';
+  CURVA.forEach(p => {
+    const medido = p.origen === "medido";
+    s += '<circle cx="' + x(p.t) + '" cy="' + y(p.r) + '" r="6.5" fill="' + (medido ? "#8A5A12" : "#FBF8F1") + '" stroke="' + (medido ? "#fff" : "#1D3B2C") + '" stroke-width="2.5"/>' +
+      '<text x="' + x(p.t) + '" y="' + (y(p.r) - 14) + '" font-size="11.5" font-weight="700" fill="#1D3B2C" text-anchor="' + (p.t === 500 ? "end" : "middle") + '">' + p.etiqueta + ' · ' + nf(p.r, 1) + ' %</text>';
+  });
+  const rc = interpolarCurva(tActual);
+  s += '<circle cx="' + x(tActual) + '" cy="' + y(rc) + '" r="11" fill="#1F7A4D" opacity=".18"/><circle cx="' + x(tActual) + '" cy="' + y(rc) + '" r="5" fill="#1F7A4D"/>';
+  [380, 400, 420, 440, 460, 480, 500].forEach(t => {
+    s += '<text x="' + x(t) + '" y="' + (top + alto + 20) + '" font-size="11" fill="#6B6F64" text-anchor="middle">' + t + '</text>';
+  });
+  s += '<circle cx="' + (mL + 6) + '" cy="236" r="5" fill="#8A5A12"/><text x="' + (mL + 16) + '" y="240" font-size="11.5" fill="#1D3B2C">medido por PYRON</text>' +
+    '<circle cx="' + (mL + 160) + '" cy="236" r="5" fill="#FBF8F1" stroke="#1D3B2C" stroke-width="2"/><text x="' + (mL + 170) + '" y="240" font-size="11.5" fill="#1D3B2C">dato del modelo</text>';
+  $("svgCurva").innerHTML = s;
+  $("outTemp").textContent = tActual;
+  $("outRendNota").textContent = Math.abs(rc - rendUso) > 0.05
+    ? "Rendimiento en uso: " + nf(rendUso, 1) + " %, fijado por el escenario o a mano. La curva marca " + nf(rc, 1) + " % a " + tActual + " °C."
+    : "Rendimiento en uso: " + nf(rendUso, 1) + " % a " + tActual + " °C.";
+}
+
+/* ----- Cadena, bioestimulante, costos, planta ----- */
+function renderCadena(r, c) {
+  const p = paramsPersistencia(c.ts);
+  const filas = [
+    ["Cstored = 1 t × " + nf(c.corg, 3) + " × 44/12", nf(r.cs, 4) + " tCO₂e"],
+    ["PF = " + nf(p.M, 2) + " − " + nf(p.a, 2) + " × " + nf(c.hcorg, 2) + " (suelo a " + Math.min(40, Math.max(7, Math.ceil(c.ts))) + " °C)", nf(r.pf, 2) + " %"],
+    ["Closs = Cstored × (100 − PF)/100", nf(r.closs, 4) + " tCO₂e"],
+    ["Eproject, ver desglose", nf(EPROJECT, 4) + " tCO₂e"],
+    ["CORCs = Cstored − Closs − Eproject", nf(r.corcsT, 4)]
+  ];
+  $("tablaCadena").querySelector("tbody").innerHTML = filas.map((f, i) =>
+    "<tr" + (i === filas.length - 1 ? ' class="total"' : "") + "><td>" + f[0] + '</td><td class="num">' + f[1] + "</td></tr>").join("");
+  $("tablaEproject").querySelector("tbody").innerHTML = EP_PARTES.map(k =>
+    "<tr><td>" + PARAMS[k].nombre.replace("Eproject: ", "") + '</td><td class="num">' + nf(PARAMS[k].valor, 2) + "</td></tr>").join("") +
+    '<tr class="total"><td>Total</td><td class="num">' + nf(EPROJECT * 1000, 2) + "</td></tr>";
+}
+
+function renderBio(r, c) {
+  const filas = [
+    ["Madera seca", "1,000 kg"],
+    ["× líquido crudo, medido en nuestras corridas", nf(PARAMS.liquido.valor * 100, 0) + " %"],
+    ["× aprovechable tras tres meses de reposo (Embrapa)", nf(PARAMS.aprovechable.valor * 100, 0) + " %"],
+    ["× vapor que se condensa, supuesto del modelo", nf(c.cond * 100, 1) + " %"],
+    ["Bioestimulante por t de madera", nf(r.lPorT, 2) + " L"]
+  ];
+  $("tablaBio").querySelector("tbody").innerHTML = filas.map((f, i) =>
+    "<tr" + (i === filas.length - 1 ? ' class="total"' : "") + "><td>" + f[0] + '</td><td class="num">' + f[1] + "</td></tr>").join("");
+}
+
+function renderPrecios(c) {
+  const datos = [
+    { n: "A granel, sudeste asiático", v: PARAMS.bench_granel.valor, color: "#6B6F64" },
+    { n: "Orgánico, venta en línea", v: PARAMS.bench_linea.valor, color: "#6B6F64" },
+    { n: "PYRON en Guatemala, envasado y con registro MAGA", v: c.pl, color: "#4F7FC4" }
+  ];
+  const W = 520, mL = 4, ancho = W - mL - 150, max = Math.max(...datos.map(d => d.v), 1);
+  let s = "";
+  datos.forEach((d, i) => {
+    const y = 20 + i * 76, w = Math.max(4, ancho * d.v / max);
+    s += '<text x="' + mL + '" y="' + y + '" font-size="14" fill="#1D3B2C" font-weight="600">' + d.n + '</text>' +
+      '<rect x="' + mL + '" y="' + (y + 10) + '" width="' + w.toFixed(1) + '" height="30" rx="5" fill="' + d.color + '" opacity="' + (i === 2 ? 1 : .55) + '"/>' +
+      '<text x="' + (mL + w + 10).toFixed(1) + '" y="' + (y + 31) + '" font-size="17" font-weight="700" fill="#1D3B2C">USD ' + nf(d.v, 2) + ' por L</text>';
+  });
+  $("svgPrecios").innerHTML = s;
+}
+
+function renderCostos(r, c) {
+  $("tablaCostos").querySelector("tbody").innerHTML = COSTOS.map(k => {
+    const excluido = (k === "c_carbono" && !c.cred) || (k === "c_envasado" && !c.bio);
+    return "<tr" + (excluido ? ' style="opacity:.45"' : "") + "><td>" + PARAMS[k].nombre.replace("Costo: ", "").replace(/^./, m => m.toUpperCase()) +
+      (excluido ? " (no aplica)" : "") + '</td><td class="num">' + nf(PARAMS[k].valor, 0) + "</td></tr>";
+  }).join("") + '<tr class="total"><td>Total</td><td class="num">' + nf(r.costoT, 0) + "</td></tr>";
+  const porT = v => r.biochar > 0 ? v / r.biochar : 0;
+  const filas = [
+    ["CORCs", porT(r.ingC)], ["Biochar", porT(r.ingB)], ["Bioestimulante", porT(r.ingL)],
+    ["Ingreso por t", porT(r.total)], ["Costo por t", -r.costoT], ["Margen EBITDA por t", porT(r.total) - r.costoT]
+  ];
+  $("tablaMargen").querySelector("tbody").innerHTML = filas.map((f, i) =>
+    "<tr" + (i === 3 || i === 5 ? ' class="total"' : "") + "><td>" + f[0] + (i === 5 ? " (" + nf(r.margen * 100, 0) + " %)" : "") +
+    '</td><td class="num">' + (f[1] < 0 ? "−" : "") + nf(Math.abs(f[1]), 0) + "</td></tr>").join("");
+}
+
+function renderPlanta(r) {
+  const u = Math.max(1, r.unidades);
+  let html = "";
+  for (let i = 1; i <= u; i++) html += '<div class="unidad"><strong>BST-50S #' + i + '</strong>20,800 t al año</div>';
+  $("outUnidades").innerHTML = html;
+  const usado = Math.min(100, r.util * 100);
+  $("medidorPlanta").innerHTML = '<div style="width:' + usado.toFixed(1) + '%;background:var(--biochar)"></div>';
+  $("outPlanta").innerHTML = r.unidades === 0 ? "Sin madera para procesar."
+    : "<strong>" + r.unidades + (r.unidades === 1 ? " unidad" : " unidades") + " al " + nf(r.util * 100, 0) + " %</strong> de uso para " +
+      nf(r.madera, 0) + " t de madera seca. Espacio para otras maderas: <strong>" + nf(r.libre, 0) + " t al año</strong>. Equipos: " + usd(r.unidades * PARAMS.costo_unidad.valor, 2) + ".";
+}
+
+/* ----- Modelo financiero: resultados oficiales fijos ----- */
+function renderFinanciero() {
+  const e = ESCENARIOS[escActivo], o = e.oficial;
+  $("finTitulo").textContent = "Escenario " + e.nombre.toLowerCase();
+  const items = [
+    ["VAN a 10 años, 12 %", (o.van < 0 ? "−" : "") + "USD " + nf(Math.abs(o.van), 2) + "M"],
+    ["TIR", nf(o.tir, 1) + " %"],
+    ["Inversión total, caja propia", "USD " + nf(o.inv, 2) + "M"]
+  ];
+  if (o.anio0 !== undefined) items.push(["Inversión año 0, 2027", "USD " + nf(o.anio0, 3).replace(/0$/, "") + "M"]);
+  if (o.expo !== undefined) items.push(["Exposición máxima de caja", "USD " + nf(o.expo, 2) + "M"]);
+  if (o.recup !== undefined) items.push(["Recuperación; " + nf(o.recupDesc, 1) + " años descontada", nf(o.recup, 1) + " años"]);
+  if (o.corcsT !== undefined) items.push(["CORCs por t en el modelo, con PF " + o.pf + " %", nf(o.corcsT, 3)]);
+  $("finGrid").innerHTML = items.map(i => '<div><div class="v">' + i[1] + '</div><div class="k">' + i[0] + "</div></div>").join("");
+  $("finNota").textContent = (modificado ? "Los campos de la página ya no coinciden con este escenario. " : "") +
+    "El modelo fija la permanencia en 65 % (pesimista), 70 % (base) y 74 % (optimista); la calculadora la calcula con la Ec. 6.4. El 74 % corresponde a un suelo de 20 °C.";
+}
+
+function renderFlujo() {
+  const W = 900, mL = 64, mR = 20, top = 30, alto = 220;
+  const acum = []; FCFF.reduce((s, f) => { acum.push(s + f); return s + f; }, 0);
+  const max = Math.max(...acum), min = Math.min(...acum);
+  const y = v => top + alto * (max - v) / (max - min);
+  const paso = (W - mL - mR) / acum.length, ancho = paso * 0.62;
+  let s = "";
+  [0, 10e6, 20e6].forEach(v => {
+    s += '<line x1="' + mL + '" y1="' + y(v) + '" x2="' + (W - mR) + '" y2="' + y(v) + '" stroke="' + (v === 0 ? "#6B6F64" : "#E2D8C4") + '"/>' +
+      '<text x="' + (mL - 8) + '" y="' + y(v) + '" font-size="11" fill="#6B6F64" text-anchor="end" dominant-baseline="middle">' + (v === 0 ? "0" : nf(v / 1e6, 0) + "M") + "</text>";
+  });
+  acum.forEach((v, i) => {
+    const x = mL + i * paso + (paso - ancho) / 2, y0 = y(0), y1 = y(v);
+    s += '<rect x="' + x.toFixed(1) + '" y="' + Math.min(y0, y1).toFixed(1) + '" width="' + ancho.toFixed(1) + '" height="' + Math.max(1, Math.abs(y1 - y0)).toFixed(1) +
+      '" rx="3" fill="' + (v < 0 ? "#9B2226" : "#1F7A4D") + '" opacity=".85"><title>' + (ANIO_0 + i) + ": " + usd(v, 2) + " acumulado</title></rect>" +
+      '<text x="' + (x + ancho / 2).toFixed(1) + '" y="' + (top + alto + 20) + '" font-size="11" fill="#6B6F64" text-anchor="middle">' + (ANIO_0 + i) + "</text>";
+  });
+  const iMin = acum.indexOf(min), xMin = mL + iMin * paso + paso / 2;
+  s += '<text x="' + (xMin - paso * 0.31) + '" y="' + (top + alto + 40) + '" font-size="12" font-weight="700" fill="#9B2226">' + usd(min, 2) + " en " + (ANIO_0 + iMin) + "</text>";
+  const xFin = mL + (acum.length - 1) * paso + paso / 2;
+  s += '<text x="' + xFin + '" y="' + (y(max) - 8) + '" font-size="12" font-weight="700" fill="#1F7A4D" text-anchor="end">' + usd(max, 1) + " en " + (ANIO_0 + acum.length - 1) + "</text>";
+  $("svgFlujo").innerHTML = s;
+}
+
+function renderTornado() {
+  const W = 900, mL = 250, mR = 70, top = 40, fila = 40;
+  const lo = 4, hi = 16, x = v => mL + (W - mL - mR) * (v - lo) / (hi - lo);
+  let s = '<text x="' + x(VAN_BASE) + '" y="20" font-size="12" font-weight="700" fill="#1D3B2C" text-anchor="middle">Base USD ' + nf(VAN_BASE, 2) + "M</text>" +
+    '<line x1="' + x(VAN_BASE) + '" y1="28" x2="' + x(VAN_BASE) + '" y2="' + (top + TORNADO.length * fila) + '" stroke="#1D3B2C" stroke-width="1.5"/>';
+  TORNADO.forEach((t, i) => {
+    const y = top + i * fila;
+    s += '<text x="' + (mL - 12) + '" y="' + (y + 18) + '" font-size="12.5" fill="#1D3B2C" text-anchor="end">' + t.n + "</text>";
+    if (t.bajo !== null) {
+      s += '<rect x="' + x(t.bajo) + '" y="' + (y + 5) + '" width="' + (x(VAN_BASE) - x(t.bajo)) + '" height="22" rx="3" fill="#9B2226" opacity=".8"/>' +
+        '<text x="' + (x(t.bajo) - 6) + '" y="' + (y + 20) + '" font-size="11.5" fill="#1D3B2C" text-anchor="end">' + nf(t.bajo, 2) + "</text>";
+    }
+    if (t.alto !== null) {
+      s += '<rect x="' + x(VAN_BASE) + '" y="' + (y + 5) + '" width="' + (x(t.alto) - x(VAN_BASE)) + '" height="22" rx="3" fill="#1F7A4D" opacity=".85"/>' +
+        '<text x="' + (x(t.alto) + 6) + '" y="' + (y + 20) + '" font-size="11.5" fill="#1D3B2C">' + nf(t.alto, 2) + "</text>";
+    }
+  });
+  s += '<text x="' + mL + '" y="' + (top + TORNADO.length * fila + 22) + '" font-size="11" fill="#6B6F64">VAN en USD millones</text>';
+  $("svgTornado").setAttribute("viewBox", "0 0 " + W + " " + (top + TORNADO.length * fila + 32));
+  $("svgTornado").innerHTML = s;
+}
+
+function construirCorridas() {
+  $("tbodyCorridas").innerHTML = CORRIDAS.map(c =>
+    "<tr><td>" + c.id + "</td><td>" + c.especie + '</td><td class="num">' + nf(c.r, 1) + " %</td><td>" + c.temp + "</td><td>" + c.dur + "</td></tr>").join("") +
+    ESPECIES_PENDIENTES.map(e => '<tr style="color:var(--gris-texto)"><td>—</td><td>' + e + '</td><td class="num">pendiente</td><td>—</td><td>—</td></tr>').join("");
+}
+
+function construirFuentes() {
+  const etiquetas = {
+    metodologia: "Metodología Puro.earth 2025 v2", paper: "Literatura revisada por pares",
+    medicion_propia: "Medido por PYRON", dato_empresa: "Dato de campo de la plantación", supuesto: "Supuesto del modelo"
+  };
+  $("tbodyFuentes").innerHTML = Object.values(PARAMS).map(p =>
+    "<tr><td>" + p.nombre + '</td><td class="num">' + (typeof p.valor === "number" ? nf(p.valor, p.valor < 1 ? 4 : (p.valor % 1 ? 2 : 0)) : p.valor) +
+    "</td><td>" + p.unidad + '</td><td><span class="badge ' + p.tipo + '">' + etiquetas[p.tipo] + "</span></td><td>" + p.fuente +
+    (p.url ? ' <a href="' + p.url + '" target="_blank" rel="noopener" style="color:var(--biochar)">[enlace]</a>' : "") + "</td></tr>").join("");
+}
+
+/* ----- Recálculo principal ----- */
+function recalc() {
+  const c = leer();
+  const r = calcular(c);
+  document.body.classList.toggle("no-certificable", !r.certificable);
+
+  animar("outTotal", r.total, v => usd(v, 1));
+  $("outTotalNota").textContent = nf(c.ha, 0) + " ha al año · " + nf(r.madera, 0) + " t de madera seca · precios del año 1";
+  animar("outEbitda", r.ebitda, v => usd(v, 2));
+  $("outMargen").textContent = "Margen " + nf(r.margen * 100, 0) + " % · costo de " + usd(r.costoT) + " por t de biochar";
+  $("outCorcsT").textContent = nf(r.corcsT, 2);
+  $("outCorcsT2").textContent = nf(r.corcsT, 2);
+
+  const h = calcular({ ...c, ha: 1 });
+  $("outVeces").textContent = nf(h.veces, 0) + "x";
+  $("outLena").innerHTML = "Una hectárea en la refinería deja <strong>" + usd(h.total) + "</strong>. La misma madera vendida como leña deja <strong>" +
+    usd(h.lenaHa) + "</strong> (USD " + nf(PARAMS.lena_arbol.valor, 2) + " por árbol). Por hectárea: " + nf(h.biochar, 0) + " t de biochar, " +
+    nf(h.corcs, 0) + " CORCs y " + nf(h.litros, 0) + " L de bioestimulante.";
+
+  renderRefineria(r, c);
+  renderCurva(num("inTemp", 500), c.rend);
+  renderCadena(r, c);
+  renderBio(r, c);
+  renderPrecios(c);
+  renderCostos(r, c);
+  renderPlanta(r);
+  if (!aplicando && escActivo && !modificado) { modificado = true; }
+  renderFinanciero();
+  guardarHash();
+}
+
+/* ----- Escenarios ----- */
+function aplicarEscenario(clave) {
+  const v = ESCENARIOS[clave].valores;
+  aplicando = true;
+  $("inCorg").value = v.corg; $("inRend").value = v.rend; $("inPb").value = v.pb; $("inPc").value = v.pc; $("inPl").value = v.pl;
+  $("chkCred").checked = v.cred; $("chkBio").checked = v.bio;
+  $("inHcorg").value = 0.46; $("inTemp").value = 500;
+  const d = DESTINOS.find(x => x.id === v.dest); d.ts = v.ts;
+  $("selDestino").value = v.dest; $("inTs").value = v.ts;
+  escActivo = clave; modificado = false;
+  document.querySelectorAll(".segmentado button").forEach(b => b.setAttribute("aria-pressed", b.dataset.esc === clave ? "true" : "false"));
+  recalc();
+  aplicando = false;
+}
+
+/* ----- Enlace compartible: solo valores de la pantalla en el hash ----- */
+const CAMPOS_HASH = { ha: "inHa", arb: "inArboles", m3: "inM3", den: "inDens", rend: "inRend", temp: "inTemp", corg: "inCorg",
+                      hc: "inHcorg", ts: "inTs", pb: "inPb", pc: "inPc", pl: "inPl", cond: "inCond" };
+function guardarHash() {
+  const q = new URLSearchParams();
+  Object.entries(CAMPOS_HASH).forEach(([k, id]) => q.set(k, $(id).value));
+  q.set("dest", $("selDestino").value);
+  q.set("cred", $("chkCred").checked ? 1 : 0);
+  q.set("bio", $("chkBio").checked ? 1 : 0);
+  q.set("esc", modificado ? "" : escActivo);
+  try { history.replaceState(null, "", "#" + q.toString()); } catch (e) { /* entornos sin history */ }
+}
+function leerHash() {
+  if (!location.hash || location.hash.length < 2) return false;
+  const q = new URLSearchParams(location.hash.slice(1));
+  Object.entries(CAMPOS_HASH).forEach(([k, id]) => { if (q.has(k) && q.get(k) !== "" && isFinite(parseFloat(q.get(k)))) $(id).value = q.get(k); });
+  if (q.has("dest") && DESTINOS.some(d => d.id === q.get("dest"))) $("selDestino").value = q.get("dest");
+  if (q.has("ts")) destinoActual().ts = parseFloat($("inTs").value);
+  if (q.has("cred")) $("chkCred").checked = q.get("cred") === "1";
+  if (q.has("bio")) $("chkBio").checked = q.get("bio") === "1";
+  const esc = q.get("esc");
+  escActivo = ESCENARIOS[esc] ? esc : "base";
+  modificado = !ESCENARIOS[esc];
+  document.querySelectorAll(".segmentado button").forEach(b => b.setAttribute("aria-pressed", (!modificado && b.dataset.esc === escActivo) ? "true" : "false"));
+  return true;
+}
+function copiarEnlace() {
+  const aviso = t => { $("avisoCopiado").textContent = t; setTimeout(() => { $("avisoCopiado").textContent = ""; }, 2500); };
+  const url = location.href;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => aviso("Enlace copiado"), () => window.prompt("Copiá el enlace:", url));
+  } else { window.prompt("Copiá el enlace:", url); }
+}
+
+/* ----- Modo presentación ----- */
+function alternarPresentacion() {
+  const activo = document.body.classList.toggle("presentacion");
+  $("btnPresentacion").firstChild.textContent = activo ? "Salir de presentación" : "Modo presentación";
+  try {
+    if (activo && document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    if (!activo && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  } catch (e) { /* pantalla completa no disponible */ }
+}
+
+/* ----- Tooltips ----- */
+function iniciarTooltips() {
+  const tip = $("tooltip");
+  let abierto = null;
+  const cerrar = () => { tip.style.display = "none"; abierto = null; };
+  document.addEventListener("click", e => {
+    const b = e.target.closest(".info-btn");
+    if (!b) { if (!e.target.closest("#tooltip")) cerrar(); return; }
+    e.preventDefault();
+    if (abierto === b) { cerrar(); return; }
+    tip.textContent = b.dataset.tip; tip.style.display = "block";
+    const r = b.getBoundingClientRect(), w = Math.min(340, innerWidth - 24);
+    tip.style.maxWidth = w + "px";
+    tip.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 12)) + "px";
+    tip.style.top = (r.bottom + tip.offsetHeight + 16 > innerHeight ? r.top - tip.offsetHeight - 8 : r.bottom + 8) + "px";
+    abierto = b;
+  });
+  addEventListener("scroll", cerrar, { passive: true });
+}
+
+/* ----- Inicio ----- */
+document.addEventListener("DOMContentLoaded", () => {
+  $("selDestino").innerHTML = DESTINOS.map(d => '<option value="' + d.id + '">' + d.nombre + "</option>").join("");
+  construirRefineria(); construirCorridas(); construirFuentes(); renderFlujo(); renderTornado(); iniciarTooltips();
+
+  ["inHa", "inArboles", "inM3", "inDens", "inRend", "inCorg", "inHcorg", "inPb", "inPc", "inPl", "inCond"].forEach(id => $(id).addEventListener("input", recalc));
+  ["chkCred", "chkBio"].forEach(id => $(id).addEventListener("change", recalc));
+  $("inTemp").addEventListener("input", () => { $("inRend").value = nf(interpolarCurva(num("inTemp", 500)), 1).replace(/,/g, ""); recalc(); });
+  $("selDestino").addEventListener("change", () => { $("inTs").value = destinoActual().ts; recalc(); });
+  $("inTs").addEventListener("input", () => { destinoActual().ts = num("inTs", 26); recalc(); });
+  document.querySelectorAll(".segmentado button").forEach(b => b.addEventListener("click", () => aplicarEscenario(b.dataset.esc)));
+  $("btnEnlace").addEventListener("click", copiarEnlace);
+  $("btnImprimir").addEventListener("click", () => window.print());
+  $("btnPresentacion").addEventListener("click", alternarPresentacion);
+  document.addEventListener("keydown", e => {
+    if ((e.key === "p" || e.key === "P") && !e.metaKey && !e.ctrlKey && !e.altKey && !e.target.closest("input, select, textarea")) alternarPresentacion();
+  });
+  document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement && document.body.classList.contains("presentacion")) alternarPresentacion();
+  });
+  addEventListener("beforeprint", () => document.querySelectorAll("details.panel").forEach(d => { d.dataset.abierto = d.open ? "1" : "0"; d.open = true; }));
+  addEventListener("afterprint", () => document.querySelectorAll("details.panel").forEach(d => { d.open = d.dataset.abierto === "1"; }));
+
+  if (leerHash()) { aplicando = true; recalc(); aplicando = false; }
+  else aplicarEscenario("base");
+  correrPruebas();
+});
+</script>
+</body>
+</html>

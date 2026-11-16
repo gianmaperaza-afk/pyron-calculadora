@@ -2,12 +2,13 @@
 
 Refinería de madera de hule: biochar, créditos de carbono (CORCs, Puro.earth Biochar Edition 2025 v2) y bioestimulante. Cada versión es un solo archivo HTML, sin servidor, sin librerías y sin dependencias externas.
 
-## Dos versiones
+## Versiones
 
 | Versión | Ruta | Para qué sirve |
 |---|---|---|
-| **Fase 4, vigente** | [`/`](https://gianmaperaza-afk.github.io/pyron-calculadora/) — `index.html` | Tres líneas de ingreso, costos y EBITDA, planta, resultados del modelo financiero, modo presentación, enlace compartible e impresión |
-| **Fase 3, anterior** | [`/completa/`](https://gianmaperaza-afk.github.io/pyron-calculadora/completa/) — `completa/index.html` | Versión robusta de la Fase 3, con un aviso de que sus números son anteriores al modelo financiero |
+| **Fase 4, vigente** | [`/fase4/`](https://gianmaperaza-afk.github.io/pyron-calculadora/fase4/) — `fase4/index.html` | Tres líneas de ingreso, costos y EBITDA, planta, resultados del modelo financiero, modo presentación, enlace compartible e impresión |
+| **Fase 3, ejecutiva** | [`/`](https://gianmaperaza-afk.github.io/pyron-calculadora/) — `index.html` | Versión ejecutiva de la Fase 3, sin cambios |
+| **Fase 3, completa** | [`/completa/`](https://gianmaperaza-afk.github.io/pyron-calculadora/completa/) — `completa/index.html` | Versión robusta de la Fase 3, sin cambios |
 
 ## Cambios de la Fase 4
 
