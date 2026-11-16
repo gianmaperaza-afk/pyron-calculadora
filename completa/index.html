@@ -8,7 +8,7 @@
   ============================================================================
   PYRON — Calculadora de créditos de remoción de carbono (biochar)
   Proyecto de graduación, Ingeniería Industrial, Universidad del Valle de
-  Guatemala, con Grupo Fortaleza.
+  Guatemala, con la plantación.
 
   Archivo autocontenido: sin servidor, sin build, sin conexión, sin librerías.
 
@@ -30,7 +30,7 @@
     Comprobación algebraica independiente:
       CORCs = Cstored × PF/100 = 2.933333 × 0.701045 = 2.056399
 
-  Caso 2 — datos de campo Grupo Fortaleza (valores por defecto de la interfaz):
+  Caso 2 — datos de campo de la plantación (valores por defecto de la interfaz):
     Entrada:
       100 ha | 500 árboles/ha × 1.47 m³/árbol × 600 kg/m³ (base seca)
       450 °C → rendimiento 29 %, H/Corg 0.48 | Ctot 0.867 − Cinorg 0.005 = Corg 0.862 | Ts 26 °C
@@ -370,6 +370,11 @@
   <div class="subtitulo">Calculadora de créditos de remoción de carbono — biochar de madera de replantación</div>
 </header>
 
+<div role="note" style="margin:0 0 1.6rem;padding:.85rem 1.1rem;border-left:4px solid #C9A961;background:#F5EEDD;border-radius:0 10px 10px 0;font-size:.92rem;line-height:1.5">
+  <strong>Versión de la Fase 3.</strong> Sus números son anteriores al modelo financiero de la Fase 4 (rendimiento, Eproject, precios y costos cambiaron).
+  La versión vigente está en <a href="../" style="color:#1B4332;font-weight:600">la calculadora principal</a>.
+</div>
+
 <!-- ==================== INGRESOS BRUTOS (encabezado) ==================== -->
 <section>
   <div class="resultado-grande">
@@ -409,15 +414,15 @@
       <input type="number" id="inCantidad" value="100" min="0" step="any">
     </div>
     <div class="campo solo-ha">
-      <label for="inArboles">Árboles por hectárea <button type="button" class="info-btn" data-tip="Dato de campo Grupo Fortaleza: inventario de plantación propia de Hevea brasiliensis. Editable.">i</button></label>
+      <label for="inArboles">Árboles por hectárea <button type="button" class="info-btn" data-tip="Dato de campo de la plantación: inventario de Hevea brasiliensis. Editable.">i</button></label>
       <input type="number" id="inArboles" value="500" min="0" step="any">
     </div>
     <div class="campo solo-ha">
-      <label for="inM3Arbol">Madera por árbol (m³) <button type="button" class="info-btn" data-tip="Dato de campo Grupo Fortaleza: volumen aprovechable por árbol a fin de ciclo. Editable.">i</button></label>
+      <label for="inM3Arbol">Madera por árbol (m³) <button type="button" class="info-btn" data-tip="Dato de campo de la plantación: volumen aprovechable por árbol a fin de ciclo. Editable.">i</button></label>
       <input type="number" id="inM3Arbol" value="1.47" min="0" step="any">
     </div>
     <div class="campo solo-ha">
-      <label for="inDensidad">Densidad de la madera (kg/m³) <button type="button" class="info-btn" data-tip="Dato de campo Grupo Fortaleza. La base (seca o verde) de esta densidad se controla con el selector de al lado: confirmar con la fuente del dato.">i</button></label>
+      <label for="inDensidad">Densidad de la madera (kg/m³) <button type="button" class="info-btn" data-tip="Dato de campo de la plantación. La base (seca o verde) de esta densidad se controla con el selector de al lado: confirmar con la fuente del dato.">i</button></label>
       <input type="number" id="inDensidad" value="600" min="0" step="any">
     </div>
     <div class="campo">
@@ -661,7 +666,7 @@
     <summary>8 · Plan multianual de replantación</summary>
     <div class="contenido">
       <p style="font-size:.9rem;margin-bottom:.8rem">La tala es cíclica: esta tabla proyecta el programa año por año
-        suponiendo una superficie constante. El calendario real de Fortaleza sustituirá estos valores.</p>
+        suponiendo una superficie constante. El calendario real de la plantación sustituirá estos valores.</p>
       <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:1rem">
         <div class="campo">
           <label for="inHaAnio">Hectáreas por año</label>
@@ -851,19 +856,19 @@ const PARAMS = {
   },
   arboles_por_ha: {
     valor: 500, unidad: "árboles/ha",
-    fuente: "Dato de campo Grupo Fortaleza — inventario de plantación propia de Hevea brasiliensis, Costa Sur de Guatemala.",
+    fuente: "Dato de campo de la plantación — inventario de plantación propia de Hevea brasiliensis, Costa Sur de Guatemala.",
     url: "", tipo: "dato_empresa",
     nombre: "Árboles por hectárea"
   },
   m3_por_arbol: {
     valor: 1.47, unidad: "m³/árbol",
-    fuente: "Dato de campo Grupo Fortaleza — volumen de madera aprovechable por árbol a fin de ciclo.",
+    fuente: "Dato de campo de la plantación — volumen de madera aprovechable por árbol a fin de ciclo.",
     url: "", tipo: "dato_empresa",
     nombre: "Madera aprovechable por árbol"
   },
   densidad_kg_m3: {
     valor: 600, unidad: "kg/m³",
-    fuente: "Dato de campo Grupo Fortaleza — densidad de la madera de hule. Confirmar con la empresa si está en base seca o peso verde: ese detalle duplica o reduce a la mitad el resultado.",
+    fuente: "Dato de campo de la plantación — densidad de la madera de hule. Confirmar con la plantación si está en base seca o peso verde: ese detalle duplica o reduce a la mitad el resultado.",
     url: "", tipo: "dato_empresa",
     nombre: "Densidad de la madera (dato de campo)"
   },
@@ -1125,7 +1130,7 @@ function selfTest() {
     Math.abs(corcs - rutaAlgebraica) < 5e-7;
   console.assert(ok1, "FALLO caso 1 (Puro.earth)", { cstored, pf, closs, corcs, rutaAlgebraica });
 
-  // Caso 2 — datos de campo Fortaleza (valores por defecto de la interfaz):
+  // Caso 2 — datos de campo de la plantación (valores por defecto de la interfaz):
   // 100 ha, base seca, 450 °C, Corg 0.867, Ts 26 °C, Eproject 0,
   // CORC $150, producto $200/t
   const madera2 = 100 * 500 * 1.47 * 600 / 1000;                       // 44,100 t
@@ -1147,7 +1152,7 @@ function selfTest() {
     Math.abs(ingCarbono2 - 4176789) < 75 &&
     Math.abs(ingProducto2 - 2557800) < 1e-3 &&
     Math.abs(ingTotal2 - 6734589) < 75;
-  console.assert(ok2, "FALLO caso 2 (Fortaleza)", { madera2, rend2, hcorg2, biochar2, corcs2, ingCarbono2, ingProducto2, ingTotal2 });
+  console.assert(ok2, "FALLO caso 2 (plantación)", { madera2, rend2, hcorg2, biochar2, corcs2, ingCarbono2, ingProducto2, ingTotal2 });
 
   // Caso 2b — peso verde con 50 % de humedad: todo se reduce exactamente a la mitad
   const maderaVerde = madera2 * (1 - 50 / 100);
@@ -1163,7 +1168,7 @@ function selfTest() {
 
   const ok = ok1 && ok2 && ok2b;
   console.log(ok
-    ? "Auto-verificación PYRON: OK (Puro.earth 2.056399 tCO₂e · Fortaleza 27,845 CORCs y $6,734,589 · peso verde = mitad exacta)"
+    ? "Auto-verificación PYRON: OK (Puro.earth 2.056399 tCO₂e · plantación 27,845 CORCs y $6,734,589 · peso verde = mitad exacta)"
     : "Auto-verificación PYRON: FALLO — revisar la cadena de cálculo");
   return ok;
 }
@@ -1226,7 +1231,7 @@ function construirTablaFuentes() {
   const etiquetas = {
     metodologia: "Metodología Puro.earth 2025 v2",
     paper: "Literatura revisada por pares",
-    dato_empresa: "Dato de campo Grupo Fortaleza",
+    dato_empresa: "Dato de campo de la plantación",
     medicion_propia: "Medido por PYRON",
     supuesto: "Estimación preliminar"
   };
@@ -1674,7 +1679,7 @@ function recalc() {
         baseVerde = c.baseVerde, humedad = c.humedad;
 
   if (unidad === "ha") {
-    $("tipUnidad").dataset.tip = "Se convierte con los datos de campo de Fortaleza: árboles/ha × m³/árbol × densidad ≈ " +
+    $("tipUnidad").dataset.tip = "Se convierte con los datos de campo de la plantación: árboles/ha × m³/árbol × densidad ≈ " +
       fmt(r.tPorHa, 0) + " t de madera seca por hectárea.";
   }
   document.body.classList.toggle("no-certificable", !certificable);
@@ -1698,7 +1703,7 @@ function recalc() {
     ? "Madera seca — " + fmt(cantidad, 0) + " ha × " + fmt(r.tPorHa, 0) + " t/ha" + (baseVerde ? " × (1 − " + fmt(humedad, 0) + " %)" : "")
     : "Madera seca" + (baseVerde ? " — × (1 − " + fmt(humedad, 0) + " %)" : "");
   renderCadena([
-    { nombre: etiquetaMadera, valor: fmt(maderaSeca, 1), unidad: "t", eq: "sup", eqLabel: unidad === "ha" ? "dato Fortaleza" : "entrada" },
+    { nombre: etiquetaMadera, valor: fmt(maderaSeca, 1), unidad: "t", eq: "sup", eqLabel: unidad === "ha" ? "dato de la plantación" : "entrada" },
     { nombre: "Biochar (Qbiochar) — × rendimiento " + fmt(rendimiento, 1) + " %", valor: fmt(qBiochar, 2), unidad: "t", eq: "rend", eqLabel: "curva supuesta" },
     { nombre: "Corg — Ctot " + fmt(c.ctot, 3) + " − Cinorg " + fmt(c.cinorg, 3), valor: fmt(corg, 3), unidad: "fracción", eq: "6.2", eqLabel: "Ec. 6.2" },
     { nombre: "Cstored — × Corg " + fmt(corg, 3) + " × 44/12", valor: fmt(cstored, 2), unidad: "tCO₂e", eq: "6.1", eqLabel: "Ec. 6.1" },
